@@ -30,7 +30,10 @@
 
 // Custom Includes
 // nothing here yet
-
+#include "FreeRTOS.h"
+#include "task.h"
+#include "queue.h"
+#include "FreeRTOSConfig.h"
 
 /* USER CODE END Includes */
 
@@ -64,7 +67,12 @@ static void MX_USART1_UART_Init(void);
 void StartDefaultTask(void const * argument);
 
 /* USER CODE BEGIN PFP */
-
+void vTest (void* pvparams){
+	while(1){
+		vTaskDelay(1000);
+		printf("test");
+	}
+}
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -129,6 +137,7 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
+  xTaskCreate(vTest,"testfunc",configMINIMAL_STACK_SIZE,NULL,2,NULL);
   /* USER CODE END RTOS_THREADS */
 
   /* Start scheduler */
