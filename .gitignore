@@ -1,3 +1,4 @@
+BLDC_Camera_Gimbal_Firmware_STM32/Debug/
 # Prerequisites
 *.d
 
@@ -18,7 +19,6 @@
 
 # Libraries
 *.lib
-*.a
 *.la
 *.lo
 
