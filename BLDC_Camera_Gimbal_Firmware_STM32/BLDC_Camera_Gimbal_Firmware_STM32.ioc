@@ -1,7 +1,7 @@
 #MicroXplorer Configuration settings - do not modify
 FREERTOS.IPParameters=Tasks01,configMAX_PRIORITIES
 FREERTOS.Tasks01=defaultTask,0,128,StartDefaultTask,Default,NULL
-FREERTOS.configMAX_PRIORITIES=32
+FREERTOS.configMAX_PRIORITIES=7
 File.Version=6
 KeepUserPlacement=true
 Mcu.Family=STM32F3
