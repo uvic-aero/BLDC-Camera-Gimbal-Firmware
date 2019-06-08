@@ -85,10 +85,38 @@ static void MX_USART2_UART_Init(void);
 void StartDefaultTask(void const * argument);
 
 /* USER CODE BEGIN PFP */
-void vTest (void* pvparams){
+
+void vTest (void* pvparams)
+{
+	uint16_t imu_addr = 0x68;
+	uint16_t REG_ACCEL_XOUT_H = 0x3B;
+	uint16_t REG_ACCEL_XOUT_L = 0x3C;
+	uint16_t REG_ACCEL_YOUT_H = 0x3D;
+	uint16_t REG_ACCEL_YOUT_L = 0x3E;
+	uint16_t REG_ACCEL_ZOUT_H = 0x3F;
+	uint16_t REG_ACCEL_ZOUT_L = 0x40;
+
+	uint8_t buffer[2] = {0,0};
+	struct IMU_Accel_t { uint16_t x,y,z;} accel;
+
+
 	while(1){
 		vTaskDelay(1000);
-		printf("test");
+		HAL_I2C_Mem_Read(&hi2c2, imu_addr << 1, REG_ACCEL_XOUT_L, 1, &buffer[0],1,100);
+		HAL_I2C_Mem_Read(&hi2c2, imu_addr << 1, REG_ACCEL_XOUT_H, 1, &buffer[1],1,100);
+		accel.x = (buffer[1] << 8) | buffer[0] ;
+
+		HAL_I2C_Mem_Read(&hi2c2, imu_addr << 1, REG_ACCEL_YOUT_L, 1, &buffer[0],1,100);
+		HAL_I2C_Mem_Read(&hi2c2, imu_addr << 1, REG_ACCEL_YOUT_H, 1, &buffer[1],1,100);
+		accel.y = (buffer[1] << 8) | buffer[0] ;
+
+		HAL_I2C_Mem_Read(&hi2c2, imu_addr << 1, REG_ACCEL_ZOUT_L, 1, &buffer[0],1,100);
+		HAL_I2C_Mem_Read(&hi2c2, imu_addr << 1, REG_ACCEL_ZOUT_H, 1, &buffer[1],1,100);
+		accel.z = (buffer[1] << 8) | buffer[0] ;
+
+
+
+		printf("IMU1 accel: x =  %u, y = %u, z = %u\n", accel.x, accel.y, accel.z );
 	}
 }
 /* USER CODE END PFP */
@@ -298,7 +326,7 @@ static void MX_I2C2_Init(void)
 
   /* USER CODE END I2C2_Init 1 */
   hi2c2.Instance = I2C2;
-  hi2c2.Init.Timing = 0x2000090E;
+  hi2c2.Init.Timing = 0x0000020B;
   hi2c2.Init.OwnAddress1 = 0;
   hi2c2.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c2.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
@@ -857,7 +885,6 @@ void StartDefaultTask(void const * argument)
   for(;;)
   {
     osDelay(1000);
-    printf("Hello");
   }
   /* USER CODE END 5 */ 
 }
