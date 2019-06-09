@@ -96,7 +96,13 @@ void Error_Handler(void);
 #define MOTOR3_IN3_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 
+// IMU GLOBAL CONFIGS
 #define IMU_I2C_CHANNEL			hi2c2
+#define AXIS_IMU_ADDR			(0x68)
+#define BASE_IMU_ADDR			(0x69)
+
+
+// ENCODER GLOBAL CONFIGS
 #define ENCODER_I2C_CHANNEL		hi2c1
 
 /* USER CODE END Private defines */
