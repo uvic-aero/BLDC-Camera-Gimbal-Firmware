@@ -12,9 +12,17 @@
 #define IMU_WRAPPER_H_
 
 #include "main.h"
-// Need these defines for driver to build properly
-#define EMPL_TARGET_STM32F3
-#define MPU9250
+
+/* Need these defines for driver to build properly */
+/* In compiler build symbols:
+ * #define EMPL
+ * #define USE_DMP
+ * #define EMPL_TARGET_STM32F3
+ * #define MPU9250
+ * #define MPU_LOG_NDEBUG 1
+ */
+
+// needed to insert a NOP
 #define __no_operation(...) __asm volatile ("	nop				\n");
 
 // These defines are for config options
