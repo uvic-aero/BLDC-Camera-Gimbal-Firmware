@@ -37,7 +37,7 @@
  * min(int a, int b)
  */
 #if defined EMPL_TARGET_STM32F4
-#include "i2c.h"   
+#include "i2c.h"
 #include "main.h"
 #include "log.h"
 #include "board-st_discovery.h"
@@ -48,6 +48,19 @@
 #define get_ms      get_tick_count
 #define log_i       MPL_LOGI
 #define log_e       MPL_LOGE
+#define min(a,b) ((a<b)?a:b)
+
+#elif defined EMPL_TARGET_STM32F3
+#include "main.h"
+#include "imu_wrapper.h"
+#include "log.h"
+
+#define i2c_write   IMU_I2C_Write_Wrapper
+#define i2c_read    IMU_I2C_Read_Wrapper
+#define delay_ms    IMU_Delay_Wrapper
+#define get_ms      IMU_GetTick_Wrapper
+#define log_i(...)	do{}while(0)
+#define log_e(...)  do{}while(0)
 #define min(a,b) ((a<b)?a:b)
    
 #elif defined MOTION_DRIVER_TARGET_MSP430
@@ -771,7 +784,7 @@ int mpu_init(struct int_param_s *int_param)
     if (mpu_configure_fifo(0))
         return -1;
 
-#ifndef EMPL_TARGET_STM32F4    
+#if !defined(EMPL_TARGET_STM32F4) && !defined(EMPL_TARGET_STM32F3)
     if (int_param)
         reg_int_cb(int_param);
 #endif

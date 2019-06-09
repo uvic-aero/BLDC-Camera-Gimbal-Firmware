@@ -41,6 +41,14 @@
 #define i2c_read    Sensors_I2C_ReadRegister
 #define get_ms      get_tick_count
 
+#elif defined EMPL_TARGET_STM32F3
+#include "imu_wrapper.h"
+#include "main.h"
+
+#define i2c_write   IMU_I2C_Write_Wrapper
+#define i2c_read    IMU_I2C_Read_Wrapper
+#define get_ms      IMU_GetTick_Wrapper
+
 #elif defined MOTION_DRIVER_TARGET_MSP430
 #include "msp430.h"
 #include "msp430_clock.h"

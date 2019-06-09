@@ -21,6 +21,8 @@
 #ifndef _INV_MPU_H_
 #define _INV_MPU_H_
 
+#include "imu_wrapper.h"
+
 #define INV_X_GYRO      (0x40)
 #define INV_Y_GYRO      (0x20)
 #define INV_Z_GYRO      (0x10)
@@ -38,7 +40,7 @@ struct int_param_s {
     unsigned long pin;
     void (*cb)(volatile void*);
     void *arg;
-#elif defined EMPL_TARGET_STM32F4
+#elif defined EMPL_TARGET_STM32F4 || defined EMPL_TARGET_STM32F3
     void (*cb)(void);
 #endif
 };
