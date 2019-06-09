@@ -96,6 +96,9 @@ void Error_Handler(void);
 #define MOTOR3_IN3_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 
+#define IMU_I2C_CHANNEL			hi2c2
+#define ENCODER_I2C_CHANNEL		hi2c1
+
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

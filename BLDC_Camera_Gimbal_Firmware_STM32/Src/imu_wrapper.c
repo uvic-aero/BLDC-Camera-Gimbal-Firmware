@@ -8,7 +8,7 @@
 #include "main.h"
 #include "imu_wrapper.h"
 
-extern I2C_HandleTypeDef hi2c2;
+extern I2C_HandleTypeDef IMU_I2C_CHANNEL;
 
 bool IMU_I2C_Write_Wrapper(
 		unsigned char slave_addr,
@@ -17,7 +17,7 @@ bool IMU_I2C_Write_Wrapper(
 		unsigned char* data)
 {
 	if (HAL_OK == HAL_I2C_Mem_Write(
-			&hi2c2,							// using I2C2... TODO: for now
+			&IMU_I2C_CHANNEL,				// using I2C2... TODO: for now
 			(((uint16_t)slave_addr) << 1),	// for the HAL, the slave_addr should be shifted by one
 			(uint16_t)reg_addr,				// Register we want
 			1,								// MemAddressSize: this is 1byte for this device, always
@@ -39,7 +39,7 @@ bool IMU_I2C_Read_Wrapper(
 		unsigned char* data)
 {
 	if ( HAL_OK == HAL_I2C_Mem_Read(
-			&hi2c2,							// using I2C2... TODO: for now
+			&IMU_I2C_CHANNEL,				// using I2C2... TODO: for now
 			(((uint16_t)slave_addr) << 1),	// for the HAL, the slave_addr should be shifted by one
 			(uint16_t)reg_addr,				// Register we want
 			1,								// MemAddressSize: this is 1byte for this device, always
