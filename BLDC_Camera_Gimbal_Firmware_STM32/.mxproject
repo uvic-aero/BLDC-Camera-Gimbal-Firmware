@@ -1,7 +1,7 @@
 [PreviousGenFiles]
-HeaderPath=C:/Users/ntron/Desktop/BLDC-Camera-Gimbal-Firmware/BLDC_Camera_Gimbal_Firmware_STM32/Inc
+HeaderPath=D:/AERO/BLDC-Camera-Gimbal-Firmware/BLDC_Camera_Gimbal_Firmware_STM32/Inc
 HeaderFiles=stm32f3xx_it.h;stm32f3xx_hal_conf.h;main.h;FreeRTOSConfig.h;
-SourcePath=C:/Users/ntron/Desktop/BLDC-Camera-Gimbal-Firmware/BLDC_Camera_Gimbal_Firmware_STM32/Src
+SourcePath=D:/AERO/BLDC-Camera-Gimbal-Firmware/BLDC_Camera_Gimbal_Firmware_STM32/Src
 SourceFiles=stm32f3xx_it.c;stm32f3xx_hal_msp.c;main.c;freertos.c;stm32f3xx_hal_timebase_tim.c;
 
 [PreviousLibFiles]
