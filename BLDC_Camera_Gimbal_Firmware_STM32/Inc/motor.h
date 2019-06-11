@@ -15,24 +15,48 @@ typedef enum Motor_Identity_t
 	PITCH_MOTOR,
 	YAW_MOTOR,
 	ROLL_MOTOR
+
 } Motor_Identity_t;
 
 typedef struct Motor_t
 {
-	//VARIABLES
-	//associated timer
-	//attach phases to each timer channel
-	//attach associated enable GPIO pins
-	//Pitch/yaw/roll (which motor)
-	//position
-	//speed
+	Motor_Identity_t identity;
 
-	//FUNCTIONS
-	//set speed (PWM duty and pulse length)
-	//commutation
-	//brake
-	//coast
-	//conversion helper functions (speed to duty cycle)
+	uint16_t phasePinA;
+	GPIO_TypeDef* phasePortA;
+	TIM_TypeDef* phaseTimerA;
+	uint16_t phaseChannelA;
+	uint16_t enablePinA;
+	GPIO_TypeDef* enablePortA;
+
+	uint16_t phasePinB;
+	GPIO_TypeDef* phasePortB;
+	TIM_TypeDef* phaseTimerB;
+	uint16_t phaseChannelB;
+	uint16_t enablePinB;
+	GPIO_TypeDef* enablePortB;
+
+	uint16_t phasePinC;
+	GPIO_TypeDef* phasePortC;
+	TIM_TypeDef* phaseTimerC;
+	uint16_t phaseChannelC;
+	uint16_t enablePinC;
+	GPIO_TypeDef* enablePortC;
+
+	/*float currPosition;
+	float currSpeed;*/
+
+	//MAKE THESE NORMAL FUNCTIONS
+	/*void (*setSpeed)(float speed); // set PWM duty and pulse length
+	void (*getSpeed)(void);
+
+	void (*commutate)(void);
+	void (*brake)(void);
+	void (*coast)(void);
+
+	void (*speedToDuty)(void);
+	void (*dutyToSpeed)(void);*/
+
 } Motor_t;
 
 typedef Motor_t* Motor_Handle_t;

@@ -806,35 +806,35 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
-  /*Configure GPIO pins : PC13 PC3 PC7 PC8 
-                           PC9 PC10 PC11 PC12 */
-  GPIO_InitStruct.Pin = GPIO_PIN_13|GPIO_PIN_3|GPIO_PIN_7|GPIO_PIN_8 
-                          |GPIO_PIN_9|GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_12;
+  /*Configure GPIO pins : PC13 PC3 MOTOR2_EN3_Pin PC8 
+                           PC9 MOTOR3_EN3_Pin MOTOR3_EN2_Pin PC12 */
+  GPIO_InitStruct.Pin = GPIO_PIN_13|GPIO_PIN_3|MOTOR2_EN3_Pin|GPIO_PIN_8 
+                          |GPIO_PIN_9|MOTOR3_EN3_Pin|MOTOR3_EN2_Pin|GPIO_PIN_12;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PA1 PA5 PA7 PA8 */
-  GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_5|GPIO_PIN_7|GPIO_PIN_8;
+  /*Configure GPIO pins : PA1 PA5 MOTOR2_EN1_Pin PA8 */
+  GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_5|MOTOR2_EN1_Pin|GPIO_PIN_8;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PB1 PB2 PB10 PB11 
-                           PB12 PB13 PB15 PB4 
-                           PB5 PB6 PB9 */
-  GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_10|GPIO_PIN_11 
-                          |GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_15|GPIO_PIN_4 
-                          |GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_9;
+  /*Configure GPIO pins : MOTOR1_EN1_Pin PB2 PB10 MOTOR1_EN2_Pin 
+                           MOTOR1_EN3_Pin PB13 PB15 PB4 
+                           PB5 MOTOR2_EN2_Pin PB9 */
+  GPIO_InitStruct.Pin = MOTOR1_EN1_Pin|GPIO_PIN_2|GPIO_PIN_10|MOTOR1_EN2_Pin 
+                          |MOTOR1_EN3_Pin|GPIO_PIN_13|GPIO_PIN_15|GPIO_PIN_4 
+                          |GPIO_PIN_5|MOTOR2_EN2_Pin|GPIO_PIN_9;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PD2 */
-  GPIO_InitStruct.Pin = GPIO_PIN_2;
+  /*Configure GPIO pin : MOTOR3_EN1_Pin */
+  GPIO_InitStruct.Pin = MOTOR3_EN1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+  HAL_GPIO_Init(MOTOR3_EN1_GPIO_Port, &GPIO_InitStruct);
 
 }
 
