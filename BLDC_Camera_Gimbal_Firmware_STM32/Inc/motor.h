@@ -18,6 +18,18 @@ typedef enum Motor_Identity_t
 
 } Motor_Identity_t;
 
+typedef enum Commutation_State_t
+{
+	STATE_1,
+	STATE_2,
+	STATE_3,
+	STATE_4,
+	STATE_5,
+	STATE_6,
+	BRAKE,
+	COAST
+} Commutation_State_t;
+
 typedef struct Motor_t
 {
 	Motor_Identity_t identity;
@@ -43,24 +55,12 @@ typedef struct Motor_t
 	uint16_t enablePinC;
 	GPIO_TypeDef* enablePortC;
 
-	/*float currPosition;
-	float currSpeed;*/
-
-	//MAKE THESE NORMAL FUNCTIONS
-	/*void (*setSpeed)(float speed); // set PWM duty and pulse length
-	void (*getSpeed)(void);
-
-	void (*commutate)(void);
-	void (*brake)(void);
-	void (*coast)(void);
-
-	void (*speedToDuty)(void);
-	void (*dutyToSpeed)(void);*/
-
 } Motor_t;
 
 typedef Motor_t* Motor_Handle_t;
 
 void Motor_Init(Motor_Handle_t motor, Motor_Identity_t ident);
+
+void Set_Commutation_State(Motor_Handle_t motor, Commutation_State_t state);
 
 #endif /* MOTOR_H_ */

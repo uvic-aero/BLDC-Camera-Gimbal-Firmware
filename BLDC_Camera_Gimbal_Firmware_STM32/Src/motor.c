@@ -89,3 +89,43 @@ void Motor_Init(Motor_Handle_t motor, Motor_Identity_t ident)
 		}
 	}
 }
+
+void Set_Commutation_State(Motor_Handle_t motor, Commutation_State_t state)
+{
+	switch(state)
+	{
+		case STATE_1:
+		{
+			//HAL_GPIO_WritePin();
+
+		}
+		case STATE_2:
+		{
+
+		}
+		case STATE_3:
+		{
+
+		}
+		case STATE_4:
+		{
+
+		}
+		case STATE_5:
+		{
+
+		}
+		case STATE_6:
+		{
+
+		}
+		case BRAKE:
+		{
+
+		}
+		case COAST:
+		{
+
+		}
+	}
+}
