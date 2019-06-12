@@ -8,13 +8,14 @@
 #include "motor.h"
 // include encoder .h .c files
 
-void Motor_Init(Motor_Handle_t motor, Motor_Identity_t ident)
+void Motor_Init(Motor_Handle_t motor, Motor_Identity_t identity)
 {
-	switch(ident)
+	switch(identity)
 	{
 		case PITCH_MOTOR:
 		{
-			motor->identity = ident;
+			motor->identity = identity;
+			motor->state = IDLE;
 
 			motor->phasePinA = MOTOR1_IN1_Pin;
 			motor->phasePortA = MOTOR1_IN1_GPIO_Port;
@@ -39,7 +40,8 @@ void Motor_Init(Motor_Handle_t motor, Motor_Identity_t ident)
 		}
 		case YAW_MOTOR:
 		{
-			motor->identity = ident;
+			motor->identity = identity;
+			motor->state = IDLE;
 
 			motor->phasePinA = MOTOR2_IN1_Pin;
 			motor->phasePortA = MOTOR2_IN1_GPIO_Port;
@@ -64,7 +66,8 @@ void Motor_Init(Motor_Handle_t motor, Motor_Identity_t ident)
 		}
 		case ROLL_MOTOR:
 		{
-			motor->identity = ident;
+			motor->identity = identity;
+			motor->state = IDLE;
 
 			motor->phasePinA = MOTOR3_IN1_Pin;
 			motor->phasePortA = MOTOR3_IN1_GPIO_Port;
@@ -92,40 +95,48 @@ void Motor_Init(Motor_Handle_t motor, Motor_Identity_t ident)
 
 void Set_Commutation_State(Motor_Handle_t motor, Commutation_State_t state)
 {
+	if ((motor->state == COMMUTATE) && (state != COMMUTATE))
+	{
+		//disable PWM output so that normal GPIO function can be used
+		//HAL_TIM_PWM_STOP();
+	}
+
 	switch(state)
 	{
-		case STATE_1:
-		{
-			//HAL_GPIO_WritePin();
-
-		}
-		case STATE_2:
+		case IDLE:
 		{
 
 		}
-		case STATE_3:
+		case COMMUTATE:
 		{
-
-		}
-		case STATE_4:
-		{
-
-		}
-		case STATE_5:
-		{
-
-		}
-		case STATE_6:
-		{
-
+			//use TIM register directly to change PWM stats, see STM MCU manual pg. 550
+			if (motor->state != COMMUTATE)
+			{
+				//start PWM generation after registers have been configured
+				//HAL_TIM_PWM_Start();
+			}
 		}
 		case BRAKE:
 		{
+			HAL_GPIO_WritePin(motor->phasePortA, motor->phasePinA, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(motor->phasePortB, motor->phasePinB, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(motor->phasePortC, motor->phasePinC, GPIO_PIN_RESET);
 
+			HAL_GPIO_WritePin(motor->enablePortA, motor->enablePinA, GPIO_PIN_SET);
+			HAL_GPIO_WritePin(motor->enablePortB, motor->enablePinB, GPIO_PIN_SET);
+			HAL_GPIO_WritePin(motor->enablePortC, motor->enablePinC, GPIO_PIN_SET);
 		}
 		case COAST:
 		{
+			HAL_GPIO_WritePin(motor->phasePortA, motor->phasePinA, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(motor->phasePortB, motor->phasePinB, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(motor->phasePortC, motor->phasePinC, GPIO_PIN_RESET);
 
+			HAL_GPIO_WritePin(motor->enablePortA, motor->enablePinA, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(motor->enablePortB, motor->enablePinB, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(motor->enablePortC, motor->enablePinC, GPIO_PIN_RESET);
 		}
 	}
+
+	motor->state = state;
 }

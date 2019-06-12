@@ -20,19 +20,16 @@ typedef enum Motor_Identity_t
 
 typedef enum Commutation_State_t
 {
-	STATE_1,
-	STATE_2,
-	STATE_3,
-	STATE_4,
-	STATE_5,
-	STATE_6,
+	COMMUTATE,
 	BRAKE,
-	COAST
+	COAST,
+	IDLE
 } Commutation_State_t;
 
 typedef struct Motor_t
 {
 	Motor_Identity_t identity;
+	Commutation_State_t state;
 
 	uint16_t phasePinA;
 	GPIO_TypeDef* phasePortA;
@@ -59,7 +56,7 @@ typedef struct Motor_t
 
 typedef Motor_t* Motor_Handle_t;
 
-void Motor_Init(Motor_Handle_t motor, Motor_Identity_t ident);
+void Motor_Init(Motor_Handle_t motor, Motor_Identity_t identity);
 
 void Set_Commutation_State(Motor_Handle_t motor, Commutation_State_t state);
 
