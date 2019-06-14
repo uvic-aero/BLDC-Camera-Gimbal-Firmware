@@ -48,24 +48,23 @@ typedef struct Motor_t
 	Commutation_State_t state;
 	Trapezoidal_State_t step;
 
+	TIM_HandleTypeDef* timer;
+
+	uint16_t phaseChannelA;
 	uint16_t phasePinA;
 	GPIO_TypeDef* phasePortA;
-	TIM_HandleTypeDef* phaseTimerA;
-	uint16_t phaseChannelA;
 	uint16_t enablePinA;
 	GPIO_TypeDef* enablePortA;
 
+	uint16_t phaseChannelB;
 	uint16_t phasePinB;
 	GPIO_TypeDef* phasePortB;
-	TIM_HandleTypeDef* phaseTimerB;
-	uint16_t phaseChannelB;
 	uint16_t enablePinB;
 	GPIO_TypeDef* enablePortB;
 
+	uint16_t phaseChannelC;
 	uint16_t phasePinC;
 	GPIO_TypeDef* phasePortC;
-	TIM_HandleTypeDef* phaseTimerC;
-	uint16_t phaseChannelC;
 	uint16_t enablePinC;
 	GPIO_TypeDef* enablePortC;
 
