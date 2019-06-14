@@ -10,15 +10,15 @@
 
 #define DUTY_CYCLE (uint8_t)(0x010)
 
-void Motor_Init(Motor_Handle_t motor, Motor_Identity_t identity)
+void Motor_Init(Motor_Handle_t motor, Motor_Identity_t identity, Operation_Mode_t mode)
 {
 	switch(identity)
 	{
 		case PITCH_MOTOR:
 		{
 			motor->identity = identity;
-			motor->state = COMMUTATE;
-			motor->step = STATE_1;
+			motor->mode = mode;
+			motor->state = STATE_1;
 			motor->direction = TURN_CW;
 			motor->speedTarget = 0.0;
 			motor->angleTarget = 0.0;
@@ -46,8 +46,8 @@ void Motor_Init(Motor_Handle_t motor, Motor_Identity_t identity)
 		case YAW_MOTOR:
 		{
 			motor->identity = identity;
-			motor->state = COMMUTATE;
-			motor->step = STATE_1;
+			motor->mode = mode;
+			motor->state = STATE_1;
 			motor->direction = TURN_CW;
 			motor->speedTarget = 0.0;
 			motor->angleTarget = 0.0;
@@ -75,8 +75,8 @@ void Motor_Init(Motor_Handle_t motor, Motor_Identity_t identity)
 		case ROLL_MOTOR:
 		{
 			motor->identity = identity;
-			motor->state = COMMUTATE;
-			motor->step = STATE_1;
+			motor->mode = mode;
+			motor->state = STATE_1;
 			motor->direction = TURN_CW;
 			motor->speedTarget = 0.0;
 			motor->angleTarget = 0.0;
@@ -104,145 +104,53 @@ void Motor_Init(Motor_Handle_t motor, Motor_Identity_t identity)
 	}
 }
 
-void Set_Commutation_State(Motor_Handle_t motor, Commutation_State_t state)
+void Set_Operation_Mode(Motor_Handle_t motor, Operation_Mode_t mode)
 {
-	switch(state)
+	HAL_TIM_PWM_Stop(motor->timer, motor->phaseChannelA);
+	HAL_TIM_PWM_Stop(motor->timer, motor->phaseChannelB);
+	HAL_TIM_PWM_Stop(motor->timer, motor->phaseChannelC);
+
+	switch(mode)
 	{
 		case COMMUTATE:
 		{
-			HAL_TIM_PWM_Stop(motor->timer, motor->phaseChannelA);
-			HAL_TIM_PWM_Stop(motor->timer, motor->phaseChannelB);
-			HAL_TIM_PWM_Stop(motor->timer, motor->phaseChannelC);
-
-			switch(motor->step)
+			switch(motor->state)
 			{
 				case STATE_1:
 				{
-					HAL_GPIO_WritePin(motor->phasePortA, motor->phasePinA, GPIO_PIN_RESET);
-					HAL_GPIO_WritePin(motor->enablePortA, motor->enablePinA, GPIO_PIN_RESET);
-
-					__HAL_TIM_SET_COMPARE(motor->timer, motor->phaseChannelB, DUTY_CYCLE);
-					HAL_TIM_PWM_Start(motor->timer, motor->phaseChannelB);
-					HAL_GPIO_WritePin(motor->enablePortB, motor->enablePinB, GPIO_PIN_SET);
-
-					HAL_GPIO_WritePin(motor->phasePortC, motor->phasePinC, GPIO_PIN_RESET);
-					HAL_GPIO_WritePin(motor->enablePortC, motor->enablePinC, GPIO_PIN_SET);
-
-					if (motor->direction == TURN_CW)
-					{
-						motor->step = STATE_2;
-					}
-					else
-					{
-						motor->step = STATE_6;
-					}
+					if (motor->direction == TURN_CW) {motor->state = STATE_2;}
+					else {motor->state = STATE_6;}
 				}
 				case STATE_2:
 				{
-					__HAL_TIM_SET_COMPARE(motor->timer, motor->phaseChannelA, DUTY_CYCLE);
-					HAL_TIM_PWM_Start(motor->timer, motor->phaseChannelA);
-					HAL_GPIO_WritePin(motor->enablePortA, motor->enablePinA, GPIO_PIN_SET);
-
-					HAL_GPIO_WritePin(motor->phasePortB, motor->phasePinB, GPIO_PIN_RESET);
-					HAL_GPIO_WritePin(motor->enablePortB, motor->enablePinB, GPIO_PIN_RESET);
-
-					HAL_GPIO_WritePin(motor->phasePortC, motor->phasePinC, GPIO_PIN_RESET);
-					HAL_GPIO_WritePin(motor->enablePortC, motor->enablePinC, GPIO_PIN_SET);
-
-					if (motor->direction == TURN_CW)
-					{
-						motor->step = STATE_3;
-					}
-					else
-					{
-						motor->step = STATE_1;
-					}
+					if (motor->direction == TURN_CW) {motor->state = STATE_3;}
+					else {motor->state = STATE_1;}
 				}
 				case STATE_3:
 				{
-					__HAL_TIM_SET_COMPARE(motor->timer, motor->phaseChannelA, DUTY_CYCLE);
-					HAL_TIM_PWM_Start(motor->timer, motor->phaseChannelA);
-					HAL_GPIO_WritePin(motor->enablePortA, motor->enablePinA, GPIO_PIN_SET);
-
-					HAL_GPIO_WritePin(motor->phasePortB, motor->phasePinB, GPIO_PIN_RESET);
-					HAL_GPIO_WritePin(motor->enablePortB, motor->enablePinB, GPIO_PIN_SET);
-
-					HAL_GPIO_WritePin(motor->phasePortC, motor->phasePinC, GPIO_PIN_RESET);
-					HAL_GPIO_WritePin(motor->enablePortC, motor->enablePinC, GPIO_PIN_RESET);
-
-					if (motor->direction == TURN_CW)
-					{
-						motor->step = STATE_4;
-					}
-					else
-					{
-						motor->step = STATE_2;
-					}
+					if (motor->direction == TURN_CW) {motor->state = STATE_4;}
+					else {motor->state = STATE_2;}
 				}
 				case STATE_4:
 				{
-					HAL_GPIO_WritePin(motor->phasePortA, motor->phasePinA, GPIO_PIN_RESET);
-					HAL_GPIO_WritePin(motor->enablePortA, motor->enablePinA, GPIO_PIN_RESET);
-
-					HAL_GPIO_WritePin(motor->phasePortB, motor->phasePinB, GPIO_PIN_RESET);
-					HAL_GPIO_WritePin(motor->enablePortB, motor->enablePinB, GPIO_PIN_SET);
-
-					__HAL_TIM_SET_COMPARE(motor->timer, motor->phaseChannelC, DUTY_CYCLE);
-					HAL_TIM_PWM_Start(motor->timer, motor->phaseChannelC);
-					HAL_GPIO_WritePin(motor->enablePortC, motor->enablePinC, GPIO_PIN_SET);
-
-					if (motor->direction == TURN_CW)
-					{
-						motor->step = STATE_5;
-					}
-					else
-					{
-						motor->step = STATE_3;
-					}
+					if (motor->direction == TURN_CW) {motor->state = STATE_5;}
+					else {motor->state = STATE_3;}
 				}
 				case STATE_5:
 				{
-					HAL_GPIO_WritePin(motor->phasePortA, motor->phasePinA, GPIO_PIN_RESET);
-					HAL_GPIO_WritePin(motor->enablePortA, motor->enablePinA, GPIO_PIN_SET);
-
-					HAL_GPIO_WritePin(motor->phasePortB, motor->phasePinB, GPIO_PIN_RESET);
-					HAL_GPIO_WritePin(motor->enablePortB, motor->enablePinB, GPIO_PIN_RESET);
-
-					__HAL_TIM_SET_COMPARE(motor->timer, motor->phaseChannelC, DUTY_CYCLE);
-					HAL_TIM_PWM_Start(motor->timer, motor->phaseChannelC);
-					HAL_GPIO_WritePin(motor->enablePortC, motor->enablePinC, GPIO_PIN_SET);
-
-					if (motor->direction == TURN_CW)
-					{
-						motor->step = STATE_6;
-					}
-					else
-					{
-						motor->step = STATE_4;
-					}
+					if (motor->direction == TURN_CW) {motor->state = STATE_6;}
+					else {motor->state = STATE_4;}
 				}
 				case STATE_6:
 				{
-					HAL_GPIO_WritePin(motor->phasePortA, motor->phasePinA, GPIO_PIN_RESET);
-					HAL_GPIO_WritePin(motor->enablePortA, motor->enablePinA, GPIO_PIN_SET);
-
-					__HAL_TIM_SET_COMPARE(motor->timer, motor->phaseChannelB, DUTY_CYCLE);
-					HAL_TIM_PWM_Start(motor->timer, motor->phaseChannelB);
-					HAL_GPIO_WritePin(motor->enablePortB, motor->enablePinB, GPIO_PIN_SET);
-
-					HAL_GPIO_WritePin(motor->phasePortC, motor->phasePinC, GPIO_PIN_RESET);
-					HAL_GPIO_WritePin(motor->enablePortC, motor->enablePinC, GPIO_PIN_RESET);
-
-					if (motor->direction == TURN_CW)
-					{
-						motor->step = STATE_1;
-					}
-					else
-					{
-						motor->step = STATE_5;
-					}
+					if (motor->direction == TURN_CW) {motor->state = STATE_1;}
+					else {motor->state = STATE_5;}
 				}
 			}
+
+			Run_Motor(motor);
+
+			break;
 		}
 		case BRAKE:
 		{
@@ -253,6 +161,8 @@ void Set_Commutation_State(Motor_Handle_t motor, Commutation_State_t state)
 			HAL_GPIO_WritePin(motor->enablePortA, motor->enablePinA, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(motor->enablePortB, motor->enablePinB, GPIO_PIN_SET);
 			HAL_GPIO_WritePin(motor->enablePortC, motor->enablePinC, GPIO_PIN_SET);
+
+			break;
 		}
 		case COAST:
 		{
@@ -263,10 +173,103 @@ void Set_Commutation_State(Motor_Handle_t motor, Commutation_State_t state)
 			HAL_GPIO_WritePin(motor->enablePortA, motor->enablePinA, GPIO_PIN_RESET);
 			HAL_GPIO_WritePin(motor->enablePortB, motor->enablePinB, GPIO_PIN_RESET);
 			HAL_GPIO_WritePin(motor->enablePortC, motor->enablePinC, GPIO_PIN_RESET);
+
+			break;
 		}
 	}
 
-	motor->state = state;
+	motor->mode = mode;
+}
+
+void Run_Motor(Motor_Handle_t motor)
+{
+	switch(motor->state)
+	{
+		case STATE_1:
+		{
+			HAL_GPIO_WritePin(motor->phasePortA, motor->phasePinA, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(motor->enablePortA, motor->enablePinA, GPIO_PIN_RESET);
+
+			__HAL_TIM_SET_COMPARE(motor->timer, motor->phaseChannelB, DUTY_CYCLE);
+			HAL_TIM_PWM_Start(motor->timer, motor->phaseChannelB);
+			HAL_GPIO_WritePin(motor->enablePortB, motor->enablePinB, GPIO_PIN_SET);
+
+			HAL_GPIO_WritePin(motor->phasePortC, motor->phasePinC, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(motor->enablePortC, motor->enablePinC, GPIO_PIN_SET);
+
+			break;
+		}
+		case STATE_2:
+		{
+			__HAL_TIM_SET_COMPARE(motor->timer, motor->phaseChannelA, DUTY_CYCLE);
+			HAL_TIM_PWM_Start(motor->timer, motor->phaseChannelA);
+			HAL_GPIO_WritePin(motor->enablePortA, motor->enablePinA, GPIO_PIN_SET);
+
+			HAL_GPIO_WritePin(motor->phasePortB, motor->phasePinB, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(motor->enablePortB, motor->enablePinB, GPIO_PIN_RESET);
+
+			HAL_GPIO_WritePin(motor->phasePortC, motor->phasePinC, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(motor->enablePortC, motor->enablePinC, GPIO_PIN_SET);
+
+			break;
+		}
+		case STATE_3:
+		{
+			__HAL_TIM_SET_COMPARE(motor->timer, motor->phaseChannelA, DUTY_CYCLE);
+			HAL_TIM_PWM_Start(motor->timer, motor->phaseChannelA);
+			HAL_GPIO_WritePin(motor->enablePortA, motor->enablePinA, GPIO_PIN_SET);
+
+			HAL_GPIO_WritePin(motor->phasePortB, motor->phasePinB, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(motor->enablePortB, motor->enablePinB, GPIO_PIN_SET);
+
+			HAL_GPIO_WritePin(motor->phasePortC, motor->phasePinC, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(motor->enablePortC, motor->enablePinC, GPIO_PIN_RESET);
+
+			break;
+		}
+		case STATE_4:
+		{
+			HAL_GPIO_WritePin(motor->phasePortA, motor->phasePinA, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(motor->enablePortA, motor->enablePinA, GPIO_PIN_RESET);
+
+			HAL_GPIO_WritePin(motor->phasePortB, motor->phasePinB, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(motor->enablePortB, motor->enablePinB, GPIO_PIN_SET);
+
+			__HAL_TIM_SET_COMPARE(motor->timer, motor->phaseChannelC, DUTY_CYCLE);
+			HAL_TIM_PWM_Start(motor->timer, motor->phaseChannelC);
+			HAL_GPIO_WritePin(motor->enablePortC, motor->enablePinC, GPIO_PIN_SET);
+
+			break;
+		}
+		case STATE_5:
+		{
+			HAL_GPIO_WritePin(motor->phasePortA, motor->phasePinA, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(motor->enablePortA, motor->enablePinA, GPIO_PIN_SET);
+
+			HAL_GPIO_WritePin(motor->phasePortB, motor->phasePinB, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(motor->enablePortB, motor->enablePinB, GPIO_PIN_RESET);
+
+			__HAL_TIM_SET_COMPARE(motor->timer, motor->phaseChannelC, DUTY_CYCLE);
+			HAL_TIM_PWM_Start(motor->timer, motor->phaseChannelC);
+			HAL_GPIO_WritePin(motor->enablePortC, motor->enablePinC, GPIO_PIN_SET);
+
+			break;
+		}
+		case STATE_6:
+		{
+			HAL_GPIO_WritePin(motor->phasePortA, motor->phasePinA, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(motor->enablePortA, motor->enablePinA, GPIO_PIN_SET);
+
+			__HAL_TIM_SET_COMPARE(motor->timer, motor->phaseChannelB, DUTY_CYCLE);
+			HAL_TIM_PWM_Start(motor->timer, motor->phaseChannelB);
+			HAL_GPIO_WritePin(motor->enablePortB, motor->enablePinB, GPIO_PIN_SET);
+
+			HAL_GPIO_WritePin(motor->phasePortC, motor->phasePinC, GPIO_PIN_RESET);
+			HAL_GPIO_WritePin(motor->enablePortC, motor->enablePinC, GPIO_PIN_RESET);
+
+			break;
+		}
+	}
 }
 
 void Set_Motor_Parameters(Motor_Handle_t motor, uint8_t direction, float speed, float angle)

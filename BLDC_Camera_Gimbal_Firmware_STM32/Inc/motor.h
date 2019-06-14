@@ -25,14 +25,14 @@ typedef enum Motor_Identity_t
 
 } Motor_Identity_t;
 
-typedef enum Commutation_State_t
+typedef enum Operation_Mode_t
 {
 	COMMUTATE,
 	BRAKE,
 	COAST
-} Commutation_State_t;
+} Operation_Mode_t;
 
-typedef enum Trapezoidal_State_t
+typedef enum Commutation_State_t
 {
 	STATE_1,
 	STATE_2,
@@ -40,13 +40,13 @@ typedef enum Trapezoidal_State_t
 	STATE_4,
 	STATE_5,
 	STATE_6
-} Trapezoidal_State_t;
+} Commutation_State_t;
 
 typedef struct Motor_t
 {
 	Motor_Identity_t identity;
+	Operation_Mode_t mode;
 	Commutation_State_t state;
-	Trapezoidal_State_t step;
 
 	TIM_HandleTypeDef* timer;
 
@@ -76,10 +76,9 @@ typedef struct Motor_t
 
 typedef Motor_t* Motor_Handle_t;
 
-void Motor_Init(Motor_Handle_t motor, Motor_Identity_t identity);
-
-void Set_Commutation_State(Motor_Handle_t motor, Commutation_State_t state);
-
+void Motor_Init(Motor_Handle_t motor, Motor_Identity_t identity, Operation_Mode_t mode);
+void Set_Operation_Mode(Motor_Handle_t motor, Operation_Mode_t mode);
+void Run_Motor(Motor_Handle_t motor);
 void Set_Motor_Parameters(Motor_Handle_t motor, uint8_t direction, float speed, float angle);
 
 #endif /* MOTOR_H_ */
