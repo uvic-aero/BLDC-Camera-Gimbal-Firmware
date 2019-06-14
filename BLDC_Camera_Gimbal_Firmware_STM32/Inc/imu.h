@@ -20,7 +20,7 @@ typedef struct IMU_t
 {
 	IMU_Identity_t	identity;
 	uint16_t		i2c_address;
-	uint16_t		interrupt_port;
+	GPIO_TypeDef*	interrupt_port;
 	uint16_t		interrupt_pin;
 } IMU_t;
 

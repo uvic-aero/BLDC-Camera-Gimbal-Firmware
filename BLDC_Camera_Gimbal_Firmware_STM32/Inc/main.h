@@ -48,6 +48,11 @@ extern "C" {
 /* Exported macro ------------------------------------------------------------*/
 /* USER CODE BEGIN EM */
 
+#ifdef DEBUG
+	#define ASSERT_PRINT(__cond__, __str__) 	do { if ( !(__cond__) ){ printf(__str__); while(1); } } while(0)
+#else
+	#define ASSERT_PRINT(__cond__, __str__)		((void)0)
+#endif
 /* USER CODE END EM */
 
 void HAL_TIM_MspPostInit(TIM_HandleTypeDef *htim);
@@ -66,8 +71,12 @@ void Error_Handler(void);
 #define MOTOR1_IN2_GPIO_Port GPIOC
 #define MOTOR1_IN3_Pin GPIO_PIN_2
 #define MOTOR1_IN3_GPIO_Port GPIOC
+#define CURR_MON_5V_Pin GPIO_PIN_3
+#define CURR_MON_5V_GPIO_Port GPIOC
 #define RC_PITCH_IN_Pin GPIO_PIN_0
 #define RC_PITCH_IN_GPIO_Port GPIOA
+#define CURR_MON_12V_Pin GPIO_PIN_1
+#define CURR_MON_12V_GPIO_Port GPIOA
 #define UART_TX_Pin GPIO_PIN_2
 #define UART_TX_GPIO_Port GPIOA
 #define UART_RX_Pin GPIO_PIN_3
@@ -76,12 +85,26 @@ void Error_Handler(void);
 #define MOTOR2_IN2_GPIO_Port GPIOA
 #define MOTOR2_IN1_Pin GPIO_PIN_6
 #define MOTOR2_IN1_GPIO_Port GPIOA
+#define MOTOR2_EN1_Pin GPIO_PIN_7
+#define MOTOR2_EN1_GPIO_Port GPIOA
 #define MOTOR2_IN3_Pin GPIO_PIN_0
 #define MOTOR2_IN3_GPIO_Port GPIOB
+#define MOTOR1_EN1_Pin GPIO_PIN_1
+#define MOTOR1_EN1_GPIO_Port GPIOB
+#define MOTOR2_NRESET_Pin GPIO_PIN_10
+#define MOTOR2_NRESET_GPIO_Port GPIOB
+#define MOTOR1_EN3_Pin GPIO_PIN_12
+#define MOTOR1_EN3_GPIO_Port GPIOB
+#define MOTOR1_NRESET_Pin GPIO_PIN_13
+#define MOTOR1_NRESET_GPIO_Port GPIOB
 #define RC_MODE_IN_Pin GPIO_PIN_14
 #define RC_MODE_IN_GPIO_Port GPIOB
 #define RC_YAW_IN_Pin GPIO_PIN_6
 #define RC_YAW_IN_GPIO_Port GPIOC
+#define MOTOR2_EN3_Pin GPIO_PIN_7
+#define MOTOR2_EN3_GPIO_Port GPIOC
+#define MOTOR3_NRESET_Pin GPIO_PIN_9
+#define MOTOR3_NRESET_GPIO_Port GPIOC
 #define MOTOR3_IN1_Pin GPIO_PIN_11
 #define MOTOR3_IN1_GPIO_Port GPIOA
 #define MOTOR3_IN2_Pin GPIO_PIN_12
@@ -90,10 +113,26 @@ void Error_Handler(void);
 #define TMS_GPIO_Port GPIOA
 #define TCK_Pin GPIO_PIN_14
 #define TCK_GPIO_Port GPIOA
+#define MOTOR3_EN3_Pin GPIO_PIN_10
+#define MOTOR3_EN3_GPIO_Port GPIOC
+#define MOTOR3_EN2_Pin GPIO_PIN_11
+#define MOTOR3_EN2_GPIO_Port GPIOC
+#define IMU_INT_2_Pin GPIO_PIN_12
+#define IMU_INT_2_GPIO_Port GPIOC
+#define MOTOR3_EN1_Pin GPIO_PIN_2
+#define MOTOR3_EN1_GPIO_Port GPIOD
 #define SWO_Pin GPIO_PIN_3
 #define SWO_GPIO_Port GPIOB
+#define MOTOR2_NFAULT_Pin GPIO_PIN_4
+#define MOTOR2_NFAULT_GPIO_Port GPIOB
+#define MOTOR1_NRESETB5_Pin GPIO_PIN_5
+#define MOTOR1_NRESETB5_GPIO_Port GPIOB
+#define MOTOR2_EN2_Pin GPIO_PIN_6
+#define MOTOR2_EN2_GPIO_Port GPIOB
 #define MOTOR3_IN3_Pin GPIO_PIN_8
 #define MOTOR3_IN3_GPIO_Port GPIOB
+#define MOTOR3_NFAULT_Pin GPIO_PIN_9
+#define MOTOR3_NFAULT_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 
 // IMU GLOBAL CONFIGS

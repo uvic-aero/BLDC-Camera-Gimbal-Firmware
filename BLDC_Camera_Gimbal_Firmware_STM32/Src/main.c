@@ -34,6 +34,8 @@
 #include "task.h"
 #include "queue.h"
 #include "FreeRTOSConfig.h"
+#include "inv_mpu.h"
+#include "mltypes.h"
 
 /* USER CODE END Includes */
 
@@ -86,8 +88,9 @@ void StartDefaultTask(void const * argument);
 
 /* USER CODE BEGIN PFP */
 
-void vTest (void* pvparams)
+void vTest (void* pvParameters)
 {
+	/*
 	uint16_t imu_addr = 0x68;
 	uint16_t REG_ACCEL_XOUT_H = 0x3B;
 	uint16_t REG_ACCEL_XOUT_L = 0x3C;
@@ -98,10 +101,46 @@ void vTest (void* pvparams)
 
 	uint8_t buffer[2] = {0,0};
 	struct IMU_Accel_t { uint16_t x,y,z;} accel;
+	*/
 
+	inv_error_t result;
+	struct int_param_s int_params;
+	bool init_success = true;
 
-	while(1){
+	short acc[3] = {0,0,0};
+	short gyr[3] = {0,0,0};
+	short mag[3] = {0,0,0};
+
+	result = mpu_init(&int_params);
+	if(result)
+	{
+		init_success = false;
+		printf("Call to mpu_init failed\n");
+	}
+
+	result = mpu_set_sensors(INV_XYZ_GYRO | INV_XYZ_ACCEL | INV_XYZ_COMPASS);
+	if (result)
+	{
+		init_success = false;
+		printf("Call to mpu_set_sensors failed\n");
+	}
+
+	while(true)
+	{
 		vTaskDelay(1000);
+
+		if (init_success)
+		{
+			mpu_get_accel_reg(acc,NULL);
+			mpu_get_gyro_reg(gyr,NULL);
+			mpu_get_compass_reg(mag,NULL);
+
+			printf("Acc: %d, %d, %d\n", acc[0],acc[1],acc[2]);
+			printf("Gyr: %d, %d, %d\n", gyr[0],gyr[1],gyr[2]);
+			printf("Mag: %d, %d, %d\n", mag[0],mag[1],mag[2]);
+		}
+
+		/*
 		HAL_I2C_Mem_Read(&hi2c2, imu_addr << 1, REG_ACCEL_XOUT_L, 1, &buffer[0],1,100);
 		HAL_I2C_Mem_Read(&hi2c2, imu_addr << 1, REG_ACCEL_XOUT_H, 1, &buffer[1],1,100);
 		accel.x = (buffer[1] << 8) | buffer[0] ;
@@ -117,6 +156,7 @@ void vTest (void* pvparams)
 
 
 		printf("IMU1 accel: x =  %u, y = %u, z = %u\n", accel.x, accel.y, accel.z );
+		*/
 	}
 }
 /* USER CODE END PFP */
@@ -834,35 +874,35 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
-  /*Configure GPIO pins : PC13 PC3 PC7 PC8 
-                           PC9 PC10 PC11 PC12 */
-  GPIO_InitStruct.Pin = GPIO_PIN_13|GPIO_PIN_3|GPIO_PIN_7|GPIO_PIN_8 
-                          |GPIO_PIN_9|GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_12;
+  /*Configure GPIO pins : CURR_MON_5V_Pin MOTOR2_EN3_Pin PC8 MOTOR3_NRESET_Pin 
+                           MOTOR3_EN3_Pin MOTOR3_EN2_Pin IMU_INT_2_Pin */
+  GPIO_InitStruct.Pin = CURR_MON_5V_Pin|MOTOR2_EN3_Pin|GPIO_PIN_8|MOTOR3_NRESET_Pin 
+                          |MOTOR3_EN3_Pin|MOTOR3_EN2_Pin|IMU_INT_2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PA1 PA5 PA7 PA8 */
-  GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_5|GPIO_PIN_7|GPIO_PIN_8;
+  /*Configure GPIO pins : CURR_MON_12V_Pin MOTOR2_EN1_Pin PA8 */
+  GPIO_InitStruct.Pin = CURR_MON_12V_Pin|MOTOR2_EN1_Pin|GPIO_PIN_8;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PB1 PB2 PB10 PB11 
-                           PB12 PB13 PB15 PB4 
-                           PB5 PB6 PB9 */
-  GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_10|GPIO_PIN_11 
-                          |GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_15|GPIO_PIN_4 
-                          |GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_9;
+  /*Configure GPIO pins : MOTOR1_EN1_Pin PB2 MOTOR2_NRESET_Pin MOTOR1_EN3_Pin 
+                           MOTOR1_NRESET_Pin PB15 MOTOR2_NFAULT_Pin MOTOR1_NRESETB5_Pin 
+                           MOTOR2_EN2_Pin MOTOR3_NFAULT_Pin */
+  GPIO_InitStruct.Pin = MOTOR1_EN1_Pin|GPIO_PIN_2|MOTOR2_NRESET_Pin|MOTOR1_EN3_Pin 
+                          |MOTOR1_NRESET_Pin|GPIO_PIN_15|MOTOR2_NFAULT_Pin|MOTOR1_NRESETB5_Pin 
+                          |MOTOR2_EN2_Pin|MOTOR3_NFAULT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PD2 */
-  GPIO_InitStruct.Pin = GPIO_PIN_2;
+  /*Configure GPIO pin : MOTOR3_EN1_Pin */
+  GPIO_InitStruct.Pin = MOTOR3_EN1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+  HAL_GPIO_Init(MOTOR3_EN1_GPIO_Port, &GPIO_InitStruct);
 
 }
 

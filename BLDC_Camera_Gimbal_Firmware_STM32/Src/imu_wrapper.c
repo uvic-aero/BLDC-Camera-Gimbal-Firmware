@@ -10,7 +10,7 @@
 
 extern I2C_HandleTypeDef IMU_I2C_CHANNEL;
 
-bool IMU_I2C_Write_Wrapper(
+int IMU_I2C_Write_Wrapper(
 		unsigned char slave_addr,
 		unsigned char reg_addr,
 		unsigned char length,
@@ -26,13 +26,13 @@ bool IMU_I2C_Write_Wrapper(
 			IMU_I2C_TIMEOUT) 				// Timeout... TODO: figure this out
 		)
 	{
-		return true;
+		return 0;
 	}
 	else
-		return false;
+		return 0x20;
 }
 
-bool IMU_I2C_Read_Wrapper(
+int IMU_I2C_Read_Wrapper(
 		unsigned char slave_addr,
 		unsigned char reg_addr,
 		unsigned char length,
@@ -48,10 +48,10 @@ bool IMU_I2C_Read_Wrapper(
 			IMU_I2C_TIMEOUT)				// Timeout... TODO: figure this out
 		)
 	{
-		return true;
+		return 0;
 	}
 	else
-		return false;
+		return 0x20;
 }
 
 void IMU_Delay_Wrapper(unsigned long ms)

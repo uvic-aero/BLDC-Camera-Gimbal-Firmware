@@ -31,13 +31,13 @@
 // Wrapper functions
 
 
-bool IMU_I2C_Write_Wrapper(
+int IMU_I2C_Write_Wrapper(
 		unsigned char slave_addr,
 		unsigned char reg_addr,
 		unsigned char length,
 		unsigned char* data);
 
-bool IMU_I2C_Read_Wrapper(
+int IMU_I2C_Read_Wrapper(
 		unsigned char slave_addr,
 		unsigned char reg_addr,
 		unsigned char length,
