@@ -10,6 +10,13 @@
 
 #include "main.h"
 
+#define TURN_CW (uint8_t)0x00
+#define TURN_CCW (uint8_t)0x01
+
+extern TIM_HandleTypeDef htim1;
+extern TIM_HandleTypeDef htim3;
+extern TIM_HandleTypeDef htim4;
+
 typedef enum Motor_Identity_t
 {
 	PITCH_MOTOR,
@@ -22,35 +29,49 @@ typedef enum Commutation_State_t
 {
 	COMMUTATE,
 	BRAKE,
-	COAST,
-	IDLE
+	COAST
 } Commutation_State_t;
+
+typedef enum Trapezoidal_State_t
+{
+	STATE_1,
+	STATE_2,
+	STATE_3,
+	STATE_4,
+	STATE_5,
+	STATE_6
+} Trapezoidal_State_t;
 
 typedef struct Motor_t
 {
 	Motor_Identity_t identity;
 	Commutation_State_t state;
+	Trapezoidal_State_t step;
 
 	uint16_t phasePinA;
 	GPIO_TypeDef* phasePortA;
-	TIM_TypeDef* phaseTimerA;
+	TIM_HandleTypeDef* phaseTimerA;
 	uint16_t phaseChannelA;
 	uint16_t enablePinA;
 	GPIO_TypeDef* enablePortA;
 
 	uint16_t phasePinB;
 	GPIO_TypeDef* phasePortB;
-	TIM_TypeDef* phaseTimerB;
+	TIM_HandleTypeDef* phaseTimerB;
 	uint16_t phaseChannelB;
 	uint16_t enablePinB;
 	GPIO_TypeDef* enablePortB;
 
 	uint16_t phasePinC;
 	GPIO_TypeDef* phasePortC;
-	TIM_TypeDef* phaseTimerC;
+	TIM_HandleTypeDef* phaseTimerC;
 	uint16_t phaseChannelC;
 	uint16_t enablePinC;
 	GPIO_TypeDef* enablePortC;
+
+	uint8_t direction;
+	float speedTarget;
+	float angleTarget;
 
 } Motor_t;
 
@@ -59,5 +80,7 @@ typedef Motor_t* Motor_Handle_t;
 void Motor_Init(Motor_Handle_t motor, Motor_Identity_t identity);
 
 void Set_Commutation_State(Motor_Handle_t motor, Commutation_State_t state);
+
+void Set_Motor_Parameters(Motor_Handle_t motor, uint8_t direction, float speed, float angle);
 
 #endif /* MOTOR_H_ */
