@@ -1,4 +1,5 @@
 #pragma once
+#pragma pack(1)
 
 #include "main.h"
 #include <stdint.h>
@@ -42,7 +43,7 @@ typedef COMMS_Payload* COMMS_PayloadHandle;
 //// Sends data to SW
 //// returns true or false indicating if it succeeded
 bool SendData(COMMS_Data_Message messages[], uint8_t mssg_size, COMMS_Header events[], uint8_t evt_size);
-uint8_t* EncodeStruct(COMMS_PayloadHandle);
+char* EncodePayload(COMMS_PayloadHandle packet, uint8_t mssg_size, uint8_t evt_size, char* txPackage);
 
 //COMMS_PkgRxHandle GetData();
 

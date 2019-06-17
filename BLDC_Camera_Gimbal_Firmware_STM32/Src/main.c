@@ -36,7 +36,7 @@
 #include "FreeRTOSConfig.h"
 
 /* USER CODE END Includes */
-
+#include "Comms.h"
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 
@@ -137,6 +137,10 @@ int main(void)
   MX_TIM15_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
+
+  COMMS_Data_Message messages[] = { { .type = 0b10101011, .value = 0xFF }, { .type = 0b10101011, .value = 0xAA } };
+  COMMS_Header events[] = { 0x33 , 0x69 };
+  SendData(messages, 2, events, 2);
 
   /* USER CODE END 2 */
 
