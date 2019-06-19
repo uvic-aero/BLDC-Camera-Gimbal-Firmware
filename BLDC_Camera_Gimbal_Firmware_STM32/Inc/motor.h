@@ -12,6 +12,7 @@
 
 #define TURN_CW (uint8_t)0x00
 #define TURN_CCW (uint8_t)0x01
+#define DUTY_CYCLE (uint8_t)(60)
 
 extern TIM_HandleTypeDef htim1;
 extern TIM_HandleTypeDef htim3;
