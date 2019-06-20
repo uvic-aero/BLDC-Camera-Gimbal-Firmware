@@ -87,8 +87,26 @@ void StartDefaultTask(void const * argument);
 /* USER CODE BEGIN PFP */
 void vTest (void* pvparams){
 	while(1){
-		vTaskDelay(1000);
-		printf("test");
+		vTaskDelay(100);
+		I2C_HandleTypeDef* i2c1Handle = &hi2c1;
+		uint16_t encoderAddressBase = 0x40;
+		uint16_t encoderAddress = ((encoderAddressBase & 0x02) << 1);
+		uint16_t memAddressAngleHigh = 0xFE;
+		uint16_t memAddressAngleLow = 0xFF;
+		uint16_t memAddressSize = 0xFF;
+		uint8_t dataBufferHigh;
+		uint8_t dataBufferLow;
+		uint8_t* dataPtrHigh = &dataBufferHigh;
+		uint8_t* dataPtrLow = &dataBufferLow;
+		uint16_t dataSize = 0xFF;
+		uint32_t timeout = 100;
+
+		HAL_I2C_Mem_Read(i2c1Handle, encoderAddress, memAddressAngleHigh, memAddressSize, dataPtrHigh, dataSize, timeout);
+		HAL_I2C_Mem_Read(i2c1Handle, encoderAddress, memAddressAngleLow, memAddressSize, dataPtrLow, dataSize, timeout);
+
+		uint16_t dataOutput = (dataBufferHigh << 8) & (dataBufferLow & 0x3F);
+
+		printf("Angle: %d\n", dataOutput);
 	}
 }
 /* USER CODE END PFP */
