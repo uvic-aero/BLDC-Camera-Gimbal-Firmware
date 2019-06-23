@@ -16,6 +16,12 @@
 #include "eMPL_outputs.h"
 #include "mltypes.h"
 #include "mpu.h"
+#include <math.h>
+
+
+#define MPU_TRY(__result__) \
+	do{ if(__result__ != INV_SUCCESS) while(1); }while(0)
+
 
 /* ************ INVENSENSE-REQUIRED DEFINITIONS (COPY PASTE FROM DEMO) *************/
 
@@ -67,7 +73,27 @@ static struct platform_data_s compass_pdata = {
 
 /**************************** FUNCTION DEFINITIONS **********************************/
 
-void IMU_Init(IMU_Handle_t hImu, IMU_Identity_t ident)
+static void tap_cb(unsigned char direction, unsigned char count)
+{
+	return; // this should be empty
+}
+
+static void android_orient_cb(unsigned char orientation)
+{
+	return; // this should be empty
+}
+
+float qToFloat(long number, unsigned char q)
+{
+	unsigned long mask = 0;
+	for (int i=0; i<q; i++)
+	{
+		mask |= (1<<i);
+	}
+	return (number >> q) + ((number & mask) / (float) (2<<(q-1)));
+}
+
+void IMU_Init(IMU_Handle_t imu, IMU_Identity_t ident)
 {
 	/* Configuration specific to the identity of the IMU*/
 
@@ -83,36 +109,94 @@ void IMU_Init(IMU_Handle_t hImu, IMU_Identity_t ident)
 	{
 	case AXIS_IMU:
 		{
-			hImu->identity = ident;
-			hImu->i2c_address = AXIS_IMU_ADDR;
-			//hImu->interrupt_port = TODO;
-			//hImu->interrupt_pin = TODO;
+			imu->identity = ident;
+			imu->i2c_address = AXIS_IMU_ADDR;
+			imu->interrupt_port = GPIOA;		// TODO: THIS IS NOT THE RIGHT PORT
+			imu->interrupt_pin = GPIO_PIN_8;	// TODO: THIS IS NOT THE RIGHT PIN
 			break;
 		}
 	case BASE_IMU:
 		{
-			hImu->identity = ident;
-			hImu->i2c_address = BASE_IMU_ADDR;
-			//hImu->interrupt_port = TODO;
-			//hImu->interrupt_pin = TODO;
+			imu->identity = ident;
+			imu->i2c_address = BASE_IMU_ADDR;
+			imu->interrupt_port = GPIOC;		// TODO: THIS IS NOT THE RIGHT PORT
+			imu->interrupt_pin = GPIO_PIN_8;	// TODO: THIS IS NOT THE RIGHT PIN
 			break;
 		}
 	}
 
 	/* Configuration applicable to all IMUs in system */
-	/*struct int_param_s int_param;
-	inv_error_t result;
 
-	// initialize IMU device, TODO: currently only for address 0x68
-	result = mpu_init(&int_param);
-	ASSERT_PRINT(result != 0, "mpu_init() failed");
-	*/
+	struct int_param_s int_params;
+	imu->dmpRate = 100;	// chosen rate Hz
+	imu->mSens = 0.15;	// constant
 
+	// IF ANY OF THESE CALLS FAIL IT WILL LOOP FOREVER!!!!!!!!!!!!!!!!!!
+	MPU_TRY( mpu_init(&int_params) );
+	MPU_TRY( mpu_set_sensors(INV_XYZ_GYRO | INV_XYZ_ACCEL | INV_XYZ_COMPASS) );
+	MPU_TRY( mpu_get_accel_sens(&(imu->aSens)) );
+	MPU_TRY( mpu_get_gyro_sens(&(imu->gSens)) );
+	MPU_TRY( dmp_load_motion_driver_firmware() );
+	MPU_TRY( dmp_set_orientation(inv_orientation_matrix_to_scalar(gyro_pdata.orientation)) );
+	MPU_TRY( dmp_register_tap_cb(tap_cb) );
+	MPU_TRY( dmp_register_android_orient_cb(android_orient_cb) );
+	MPU_TRY( dmp_enable_feature(DMP_FEATURE_6X_LP_QUAT | DMP_FEATURE_GYRO_CAL | DMP_FEATURE_TAP) );
+	MPU_TRY( dmp_set_fifo_rate(imu->dmpRate) );
+	MPU_TRY( mpu_set_dmp_state(1) );
 
+}
 
+void IMU_GetQuaternion(IMU_Handle_t imu)
+{
+	short g_temp[3]; // for throwaway data, might be able to replace with NULL
+	short a_temp[3]; // for throwaway data, might be able to repalce with NULL
+	long q_temp[4];
+	unsigned long t_temp;
+	unsigned char more;
+	short sensors;
 
+	if (dmp_read_fifo(g_temp, a_temp, q_temp, &t_temp, &sensors, &more) == INV_SUCCESS )
+	// theres potential for getting again if there is more, so that we get the most up to date data
+	{
+		if (sensors & INV_WXYZ_QUAT)
+		{
+			//memcpy((void*)(imu->quat), (void*)q_temp, 4*sizeof(long));
+			imu->quat[0] = q_temp[0];
+			imu->quat[1] = q_temp[1];
+			imu->quat[2] = q_temp[2];
+			imu->quat[3] = q_temp[3];
+		}
+	}
+}
 
+void IMU_CalcEulerAngles(IMU_Handle_t imu)
+{
+	// Temporary implementation, might use MPL instead, haven't explored that yet
 
+	float dqw = qToFloat(imu->quat[0], 30);
+	float dqx = qToFloat(imu->quat[0], 30);
+	float dqy = qToFloat(imu->quat[0], 30);
+	float dqz = qToFloat(imu->quat[0], 30);
 
+	float ysqr = dqy * dqy;
+	float t0 = -2.0f * (ysqr + dqz * dqz) + 1.0f;
+	float t1 = +2.0f * (dqx * dqy - dqw * dqz);
+	float t2 = -2.0f * (dqx * dqz + dqw * dqy);
+	float t3 = +2.0f * (dqy * dqz - dqw * dqx);
+	float t4 = -2.0f * (dqx * dqx + ysqr) + 1.0f;
 
+	// Keep t2 within range of asin (-1, 1)
+	t2 = t2 > 1.0f ? 1.0f : t2;
+	t2 = t2 < -1.0f ? -1.0f : t2;
+
+	imu->pitch = asin(t2) * 2;
+	imu->roll = atan2(t3, t4);
+	imu->yaw = atan2(t1, t0);
+
+	imu->pitch *= (180.0 / M_PI);
+	imu->roll *= (180.0 / M_PI);
+	imu->yaw *= (180.0 / M_PI);
+	if (imu->pitch < 0) imu->pitch = 360.0 + imu->pitch;
+	if (imu->roll < 0) imu->roll = 360.0 + imu->roll;
+	if (imu->yaw < 0) imu->yaw = 360.0 + imu->yaw;
 }

@@ -34,10 +34,7 @@
 #include "task.h"
 #include "queue.h"
 #include "FreeRTOSConfig.h"
-#include "inv_mpu.h"
-#include "inv_mpu_dmp_motion_driver.h"
-#include "mltypes.h"
-#include "ml_math_func.h"
+#include "imu.h"
 
 /* USER CODE END Includes */
 
@@ -71,7 +68,7 @@ UART_HandleTypeDef huart2;
 
 osThreadId defaultTaskHandle;
 /* USER CODE BEGIN PV */
-
+IMU_t imu;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -89,26 +86,6 @@ static void MX_USART2_UART_Init(void);
 void StartDefaultTask(void const * argument);
 
 /* USER CODE BEGIN PFP */
-
-static void tap_cb(unsigned char direction, unsigned char count)
-{
-	return; // this should be empty
-}
-
-static void android_orient_cb(unsigned char orientation)
-{
-	return; // this should be empty
-}
-
-float qToFloat(long number, unsigned char q)
-{
-	unsigned long mask = 0;
-	for (int i=0; i<q; i++)
-	{
-		mask |= (1<<i);
-	}
-	return (number >> q) + ((number & mask) / (float) (2<<(q-1)));
-}
 
 /*
 void vTest (void* pvParameters)
@@ -163,7 +140,7 @@ int main(void)
   MX_TIM15_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-
+  IMU_Init(&imu, AXIS_IMU);
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -887,119 +864,20 @@ static void MX_GPIO_Init(void)
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void const * argument)
 {
+	int counter = 0;
+	vTaskDelay(3000);
 
   /* USER CODE BEGIN 5 */
-	inv_error_t result;
-	struct int_param_s int_params;
-	bool init_success = true;
-
-	unsigned short aSens;
-	float gSens;
-	float mSens = 0.15; // static?
-
-	signed char orientation[9] = { 1, 0, 0, 0, 1, 0, 0, 0, 1,};
-
-	short acc[3] = {0,0,0};
-	short gyr[3] = {0,0,0};
-	short mag[3] = {0,0,0};
-	long quat[4] = {0,0,0,0};
-	unsigned long timestamp = 0;
-	short sensors;
-	unsigned char more = 0;
-
-	result = mpu_init(&int_params);
-	if(result)
-	{
-		init_success = false;
-		printf("Call to mpu_init failed\n");
-	}
-
-	result = mpu_set_sensors(INV_XYZ_GYRO | INV_XYZ_ACCEL | INV_XYZ_COMPASS);
-	if (result)
-	{
-		init_success = false;
-		printf("Call to mpu_set_sensors failed\n");
-	}
-
-	result = mpu_get_accel_sens(&aSens);
-	if (result)
-	{
-		init_success = false;
-		printf("Call to mpu_get_accel_sens failed\n");
-	}
-	result = mpu_get_gyro_sens(&gSens);
-	if (result)
-	{
-		init_success = false;
-		printf("Call to mpu_get_gyro_sens failed\n");
-	}
-
-	result = dmp_load_motion_driver_firmware();
-	if (result)
-	{
-		init_success = false;
-		printf("Call to dmp_load_motion_driver_firmware failed\n");
-	}
-
-	result = dmp_set_orientation(
-			inv_orientation_matrix_to_scalar(orientation));
-
-	if (result)
-	{
-		init_success = false;
-		printf("Call to dmp_set_orientation failed\n");
-	}
-
-	result = dmp_register_tap_cb(tap_cb);
-	if (result)
-	{
-		init_success = false;
-		printf("Call to dmp_register_tab_cb failed\n");
-	}
-	result = dmp_register_android_orient_cb(android_orient_cb);
-	if (result)
-	{
-		init_success = false;
-		printf("Call to dmp_register_android_orient_cb failed\n");
-	}
-	result = dmp_enable_feature(DMP_FEATURE_6X_LP_QUAT | DMP_FEATURE_GYRO_CAL | DMP_FEATURE_TAP);
-	if (result)
-	{
-		init_success = false;
-		printf("Call to dmp_enable_feature failed\n");
-	}
-	result = dmp_set_fifo_rate(100);
-	if (result)
-	{
-		init_success = false;
-		printf("Call to dmp_set_fifo_rate failed\n");
-	}
-	result = mpu_set_dmp_state(1);
-	if (result)
-	{
-		init_success = false;
-		printf("Call to mpu_set_dmp_state failed\n");
-	}
-
-	int counter = 0;
-
-	while(true)
+	while(1)
 	{
 		vTaskDelay(10);
+		IMU_GetQuaternion(&imu);
+		IMU_CalcEulerAngles(&imu);
 
-		if (init_success)
-		{
-			if (dmp_read_fifo(gyr, acc, quat, &timestamp, &sensors, &more) == INV_SUCCESS)
-			{
-				if (sensors & INV_WXYZ_QUAT)
-				{
-					if (counter == 0)
-						HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-					counter = (counter + 1) % 10;
-					//printf("T: %d, Quat: %d, %d, %d, %d\n", timestamp,quat[0],quat[1],quat[2],quat[3]);
-				}
-			}
-		}
+		if (counter == 0)
+			HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+
+		counter = (counter + 1) % 10;
 	}
   /* USER CODE END 5 */ 
 }
