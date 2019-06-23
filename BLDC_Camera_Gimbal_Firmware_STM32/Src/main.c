@@ -35,7 +35,9 @@
 #include "queue.h"
 #include "FreeRTOSConfig.h"
 #include "inv_mpu.h"
+#include "inv_mpu_dmp_motion_driver.h"
 #include "mltypes.h"
+#include "ml_math_func.h"
 
 /* USER CODE END Includes */
 
@@ -88,77 +90,33 @@ void StartDefaultTask(void const * argument);
 
 /* USER CODE BEGIN PFP */
 
+static void tap_cb(unsigned char direction, unsigned char count)
+{
+	return; // this should be empty
+}
+
+static void android_orient_cb(unsigned char orientation)
+{
+	return; // this should be empty
+}
+
+float qToFloat(long number, unsigned char q)
+{
+	unsigned long mask = 0;
+	for (int i=0; i<q; i++)
+	{
+		mask |= (1<<i);
+	}
+	return (number >> q) + ((number & mask) / (float) (2<<(q-1)));
+}
+
+/*
 void vTest (void* pvParameters)
 {
-	/*
-	uint16_t imu_addr = 0x68;
-	uint16_t REG_ACCEL_XOUT_H = 0x3B;
-	uint16_t REG_ACCEL_XOUT_L = 0x3C;
-	uint16_t REG_ACCEL_YOUT_H = 0x3D;
-	uint16_t REG_ACCEL_YOUT_L = 0x3E;
-	uint16_t REG_ACCEL_ZOUT_H = 0x3F;
-	uint16_t REG_ACCEL_ZOUT_L = 0x40;
-
-	uint8_t buffer[2] = {0,0};
-	struct IMU_Accel_t { uint16_t x,y,z;} accel;
-	*/
-
-	inv_error_t result;
-	struct int_param_s int_params;
-	bool init_success = true;
-
-	short acc[3] = {0,0,0};
-	short gyr[3] = {0,0,0};
-	short mag[3] = {0,0,0};
-
-	result = mpu_init(&int_params);
-	if(result)
-	{
-		init_success = false;
-		printf("Call to mpu_init failed\n");
-	}
-
-	result = mpu_set_sensors(INV_XYZ_GYRO | INV_XYZ_ACCEL | INV_XYZ_COMPASS);
-	if (result)
-	{
-		init_success = false;
-		printf("Call to mpu_set_sensors failed\n");
-	}
-
-	while(true)
-	{
-		vTaskDelay(1000);
-
-		if (init_success)
-		{
-			mpu_get_accel_reg(acc,NULL);
-			mpu_get_gyro_reg(gyr,NULL);
-			mpu_get_compass_reg(mag,NULL);
-
-			printf("Acc: %d, %d, %d\n", acc[0],acc[1],acc[2]);
-			printf("Gyr: %d, %d, %d\n", gyr[0],gyr[1],gyr[2]);
-			printf("Mag: %d, %d, %d\n", mag[0],mag[1],mag[2]);
-		}
-
-		/*
-		HAL_I2C_Mem_Read(&hi2c2, imu_addr << 1, REG_ACCEL_XOUT_L, 1, &buffer[0],1,100);
-		HAL_I2C_Mem_Read(&hi2c2, imu_addr << 1, REG_ACCEL_XOUT_H, 1, &buffer[1],1,100);
-		accel.x = (buffer[1] << 8) | buffer[0] ;
-
-		HAL_I2C_Mem_Read(&hi2c2, imu_addr << 1, REG_ACCEL_YOUT_L, 1, &buffer[0],1,100);
-		HAL_I2C_Mem_Read(&hi2c2, imu_addr << 1, REG_ACCEL_YOUT_H, 1, &buffer[1],1,100);
-		accel.y = (buffer[1] << 8) | buffer[0] ;
-
-		HAL_I2C_Mem_Read(&hi2c2, imu_addr << 1, REG_ACCEL_ZOUT_L, 1, &buffer[0],1,100);
-		HAL_I2C_Mem_Read(&hi2c2, imu_addr << 1, REG_ACCEL_ZOUT_H, 1, &buffer[1],1,100);
-		accel.z = (buffer[1] << 8) | buffer[0] ;
 
 
-
-		printf("IMU1 accel: x =  %u, y = %u, z = %u\n", accel.x, accel.y, accel.z );
-		*/
-	}
 }
+*/
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -231,7 +189,7 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
-  xTaskCreate(vTest,"testfunc",configMINIMAL_STACK_SIZE,NULL,2,NULL);
+  //xTaskCreate(vTest,"testfunc",configMINIMAL_STACK_SIZE,NULL,2,NULL);
   /* USER CODE END RTOS_THREADS */
 
   /* Start scheduler */
@@ -874,6 +832,9 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
+
   /*Configure GPIO pins : CURR_MON_5V_Pin MOTOR2_EN3_Pin PC8 MOTOR3_NRESET_Pin 
                            MOTOR3_EN3_Pin MOTOR3_EN2_Pin IMU_INT_2_Pin */
   GPIO_InitStruct.Pin = CURR_MON_5V_Pin|MOTOR2_EN3_Pin|GPIO_PIN_8|MOTOR3_NRESET_Pin 
@@ -886,6 +847,13 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pin = CURR_MON_12V_Pin|MOTOR2_EN1_Pin|GPIO_PIN_8;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PA5 */
+  GPIO_InitStruct.Pin = GPIO_PIN_5;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : MOTOR1_EN1_Pin PB2 MOTOR2_NRESET_Pin MOTOR1_EN3_Pin 
@@ -921,11 +889,118 @@ void StartDefaultTask(void const * argument)
 {
 
   /* USER CODE BEGIN 5 */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1000);
-  }
+	inv_error_t result;
+	struct int_param_s int_params;
+	bool init_success = true;
+
+	unsigned short aSens;
+	float gSens;
+	float mSens = 0.15; // static?
+
+	signed char orientation[9] = { 1, 0, 0, 0, 1, 0, 0, 0, 1,};
+
+	short acc[3] = {0,0,0};
+	short gyr[3] = {0,0,0};
+	short mag[3] = {0,0,0};
+	long quat[4] = {0,0,0,0};
+	unsigned long timestamp = 0;
+	short sensors;
+	unsigned char more = 0;
+
+	result = mpu_init(&int_params);
+	if(result)
+	{
+		init_success = false;
+		printf("Call to mpu_init failed\n");
+	}
+
+	result = mpu_set_sensors(INV_XYZ_GYRO | INV_XYZ_ACCEL | INV_XYZ_COMPASS);
+	if (result)
+	{
+		init_success = false;
+		printf("Call to mpu_set_sensors failed\n");
+	}
+
+	result = mpu_get_accel_sens(&aSens);
+	if (result)
+	{
+		init_success = false;
+		printf("Call to mpu_get_accel_sens failed\n");
+	}
+	result = mpu_get_gyro_sens(&gSens);
+	if (result)
+	{
+		init_success = false;
+		printf("Call to mpu_get_gyro_sens failed\n");
+	}
+
+	result = dmp_load_motion_driver_firmware();
+	if (result)
+	{
+		init_success = false;
+		printf("Call to dmp_load_motion_driver_firmware failed\n");
+	}
+
+	result = dmp_set_orientation(
+			inv_orientation_matrix_to_scalar(orientation));
+
+	if (result)
+	{
+		init_success = false;
+		printf("Call to dmp_set_orientation failed\n");
+	}
+
+	result = dmp_register_tap_cb(tap_cb);
+	if (result)
+	{
+		init_success = false;
+		printf("Call to dmp_register_tab_cb failed\n");
+	}
+	result = dmp_register_android_orient_cb(android_orient_cb);
+	if (result)
+	{
+		init_success = false;
+		printf("Call to dmp_register_android_orient_cb failed\n");
+	}
+	result = dmp_enable_feature(DMP_FEATURE_6X_LP_QUAT | DMP_FEATURE_GYRO_CAL | DMP_FEATURE_TAP);
+	if (result)
+	{
+		init_success = false;
+		printf("Call to dmp_enable_feature failed\n");
+	}
+	result = dmp_set_fifo_rate(100);
+	if (result)
+	{
+		init_success = false;
+		printf("Call to dmp_set_fifo_rate failed\n");
+	}
+	result = mpu_set_dmp_state(1);
+	if (result)
+	{
+		init_success = false;
+		printf("Call to mpu_set_dmp_state failed\n");
+	}
+
+	int counter = 0;
+
+	while(true)
+	{
+		vTaskDelay(10);
+
+		if (init_success)
+		{
+			if (dmp_read_fifo(gyr, acc, quat, &timestamp, &sensors, &more) == INV_SUCCESS)
+			{
+				if (sensors & INV_WXYZ_QUAT)
+				{
+					if (counter == 0)
+						HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+					counter = (counter + 1) % 10;
+					//printf("T: %d, Quat: %d, %d, %d, %d\n", timestamp,quat[0],quat[1],quat[2],quat[3]);
+				}
+			}
+		}
+	}
   /* USER CODE END 5 */ 
 }
 
