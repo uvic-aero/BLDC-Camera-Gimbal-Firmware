@@ -144,14 +144,12 @@ void IMU_Init(IMU_Handle_t imu, IMU_Identity_t ident)
 
 void IMU_GetQuaternion(IMU_Handle_t imu)
 {
-	short g_temp[3]; // for throwaway data, might be able to replace with NULL
-	short a_temp[3]; // for throwaway data, might be able to repalce with NULL
 	long q_temp[4];
 	unsigned long t_temp;
 	unsigned char more;
 	short sensors;
 
-	if (dmp_read_fifo(g_temp, a_temp, q_temp, &t_temp, &sensors, &more) == INV_SUCCESS )
+	if (dmp_read_fifo(NULL, NULL, q_temp, &t_temp, &sensors, &more) == INV_SUCCESS )
 	// theres potential for getting again if there is more, so that we get the most up to date data
 	{
 		if (sensors & INV_WXYZ_QUAT)
@@ -162,6 +160,8 @@ void IMU_GetQuaternion(IMU_Handle_t imu)
 			imu->quat[2] = q_temp[2];
 			imu->quat[3] = q_temp[3];
 		}
+
+		imu->timestamp = t_temp;
 	}
 }
 
