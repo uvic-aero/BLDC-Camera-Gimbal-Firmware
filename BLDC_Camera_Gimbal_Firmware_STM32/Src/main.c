@@ -865,6 +865,7 @@ static void MX_GPIO_Init(void)
 void StartDefaultTask(void const * argument)
 {
 	int counter = 0;
+	TickType_t t;
 	vTaskDelay(3000);
 
   /* USER CODE BEGIN 5 */
@@ -873,6 +874,7 @@ void StartDefaultTask(void const * argument)
 		vTaskDelay(10);
 		IMU_GetQuaternion(&imu);
 		IMU_CalcEulerAngles(&imu);
+		printf("%d, %d, %d\n", (int)imu.pitch, (int)imu.yaw, (int)imu.roll);
 
 		if (counter == 0)
 			HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
