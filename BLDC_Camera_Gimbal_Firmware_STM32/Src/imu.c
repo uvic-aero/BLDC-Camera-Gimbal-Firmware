@@ -19,10 +19,6 @@
 #include <math.h>
 
 
-#define MPU_TRY(__result__) \
-	do{ if(__result__ != INV_SUCCESS) while(1); }while(0)
-
-
 /* ************ INVENSENSE-REQUIRED DEFINITIONS (COPY PASTE FROM DEMO) *************/
 
 /* The sensors can be mounted onto the board in any orientation. The mounting
@@ -132,17 +128,17 @@ void IMU_Init(IMU_Handle_t imu, IMU_Identity_t ident)
 	imu->mSens = 0.15;	// constant
 
 	// IF ANY OF THESE CALLS FAIL IT WILL LOOP FOREVER!!!!!!!!!!!!!!!!!!
-	MPU_TRY( mpu_init(&int_params) );
-	MPU_TRY( mpu_set_sensors(INV_XYZ_GYRO | INV_XYZ_ACCEL | INV_XYZ_COMPASS) );
-	MPU_TRY( mpu_get_accel_sens(&(imu->aSens)) );
-	MPU_TRY( mpu_get_gyro_sens(&(imu->gSens)) );
-	MPU_TRY( dmp_load_motion_driver_firmware() );
-	MPU_TRY( dmp_set_orientation(inv_orientation_matrix_to_scalar(gyro_pdata.orientation)) );
-	MPU_TRY( dmp_register_tap_cb(tap_cb) );
-	MPU_TRY( dmp_register_android_orient_cb(android_orient_cb) );
-	MPU_TRY( dmp_enable_feature(DMP_FEATURE_6X_LP_QUAT | DMP_FEATURE_GYRO_CAL | DMP_FEATURE_TAP) );
-	MPU_TRY( dmp_set_fifo_rate(imu->dmpRate) );
-	MPU_TRY( mpu_set_dmp_state(1) );
+	mpu_init(&int_params);
+	mpu_set_sensors(INV_XYZ_GYRO | INV_XYZ_ACCEL | INV_XYZ_COMPASS);
+	mpu_get_accel_sens(&(imu->aSens));
+	mpu_get_gyro_sens(&(imu->gSens));
+	dmp_load_motion_driver_firmware();
+	dmp_set_orientation(inv_orientation_matrix_to_scalar(gyro_pdata.orientation));
+	dmp_register_tap_cb(tap_cb);
+	dmp_register_android_orient_cb(android_orient_cb);
+	dmp_enable_feature(DMP_FEATURE_6X_LP_QUAT | DMP_FEATURE_GYRO_CAL | DMP_FEATURE_TAP);
+	dmp_set_fifo_rate(imu->dmpRate);
+	mpu_set_dmp_state(1);
 
 }
 
@@ -174,9 +170,9 @@ void IMU_CalcEulerAngles(IMU_Handle_t imu)
 	// Temporary implementation, might use MPL instead, haven't explored that yet
 
 	float dqw = qToFloat(imu->quat[0], 30);
-	float dqx = qToFloat(imu->quat[0], 30);
-	float dqy = qToFloat(imu->quat[0], 30);
-	float dqz = qToFloat(imu->quat[0], 30);
+	float dqx = qToFloat(imu->quat[1], 30);
+	float dqy = qToFloat(imu->quat[2], 30);
+	float dqz = qToFloat(imu->quat[3], 30);
 
 	float ysqr = dqy * dqy;
 	float t0 = -2.0f * (ysqr + dqz * dqz) + 1.0f;
