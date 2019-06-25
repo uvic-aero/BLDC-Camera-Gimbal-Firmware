@@ -22,63 +22,39 @@
 /* ************ INVENSENSE-REQUIRED DEFINITIONS (COPY PASTE FROM DEMO) *************/
 
 /* The sensors can be mounted onto the board in any orientation. The mounting
-* matrix seen below tells the MPL how to rotate the raw data from the
-* driver(s).
-*/
-/* Platform-specific information. Kinda like a boardfile. */
-struct platform_data_s {
-    signed char orientation[9];
-};
-
-/* The sensors can be mounted onto the board in any orientation. The mounting
  * matrix seen below tells the MPL how to rotate the raw data from the
  * driver(s).
  * TODO: The following matrices refer to the configuration on internal test
  * boards at Invensense. If needed, please modify the matrices to match the
  * chip-to-body matrix for your particular set up.
  */
-static struct platform_data_s gyro_pdata = {
-    .orientation = { 1, 0, 0,
-                     0, 1, 0,
-                     0, 0, 1}
-};
-
+static signed char gyroOrientation[9] = {1, 0, 0, 0, 1, 0, 0, 0, 1};
 #if defined MPU9150 || defined MPU9250
-static struct platform_data_s compass_pdata = {
-    .orientation = { 0, 1, 0,
-                     1, 0, 0,
-                     0, 0, -1}
-};
+static signed char magOrientation[9] = {0, 1, 0, 1, 0, 0, 0, 0,-1};
 #define COMPASS_ENABLED 1
 #elif defined AK8975_SECONDARY
-static struct platform_data_s compass_pdata = {
-    .orientation = {-1, 0, 0,
-                     0, 1, 0,
-                     0, 0,-1}
-};
+static signed char magOrientation[9] = {-1, 0, 0, 0, 1, 0, 0, 0,-1};
 #define COMPASS_ENABLED 1
 #elif defined AK8963_SECONDARY
-static struct platform_data_s compass_pdata = {
-    .orientation = {-1, 0, 0,
-                     0,-1, 0,
-                     0, 0, 1}
-};
+static signed char magOrientation[9] ={-1, 0, 0, 0,-1, 0, 0, 0, 1};
 #define COMPASS_ENABLED 1
 #endif
 /************************************************************************************/
 
 /**************************** FUNCTION DEFINITIONS **********************************/
 
+// required for setup, can be empty
 static void tap_cb(unsigned char direction, unsigned char count)
 {
 	return; // this should be empty
 }
-
+// required for setup, can be empty
 static void android_orient_cb(unsigned char orientation)
 {
 	return; // this should be empty
 }
 
+// convert a quaternion to a float
 float qToFloat(long number, unsigned char q)
 {
 	unsigned long mask = 0;
@@ -89,6 +65,7 @@ float qToFloat(long number, unsigned char q)
 	return (number >> q) + ((number & mask) / (float) (2<<(q-1)));
 }
 
+// Initializes the IMU in raw-mode but not the onboard Digital Motion Processor
 void IMU_Init(IMU_Handle_t imu, IMU_Identity_t ident)
 {
 	/* Configuration specific to the identity of the IMU*/
@@ -107,8 +84,9 @@ void IMU_Init(IMU_Handle_t imu, IMU_Identity_t ident)
 		{
 			imu->identity = ident;
 			imu->i2c_address = AXIS_IMU_ADDR;
-			imu->interrupt_port = GPIOA;		// TODO: THIS IS NOT THE RIGHT PORT
-			imu->interrupt_pin = GPIO_PIN_8;	// TODO: THIS IS NOT THE RIGHT PIN
+			imu->interrupt_port = GPIOC;		// TODO: THIS IS NOT THE RIGHT PORT
+			imu->interrupt_pin = GPIO_PIN_12;	// TODO: THIS IS NOT THE RIGHT PIN
+			imu->exti_line = AXIS_IMU_EXTI_LINE;
 			break;
 		}
 	case BASE_IMU:
@@ -117,6 +95,7 @@ void IMU_Init(IMU_Handle_t imu, IMU_Identity_t ident)
 			imu->i2c_address = BASE_IMU_ADDR;
 			imu->interrupt_port = GPIOC;		// TODO: THIS IS NOT THE RIGHT PORT
 			imu->interrupt_pin = GPIO_PIN_8;	// TODO: THIS IS NOT THE RIGHT PIN
+			// TODO: imu->exti_line =
 			break;
 		}
 	}
@@ -128,21 +107,38 @@ void IMU_Init(IMU_Handle_t imu, IMU_Identity_t ident)
 	imu->mSens = 0.15;	// constant
 
 	// IF ANY OF THESE CALLS FAIL IT WILL LOOP FOREVER!!!!!!!!!!!!!!!!!!
+	IMU_DisableInterrupt(imu); // mask interrupts so that it can't affect system state
 	mpu_init(&int_params);
 	mpu_set_sensors(INV_XYZ_GYRO | INV_XYZ_ACCEL | INV_XYZ_COMPASS);
-	mpu_set_int_level(0 /*0 means active high*/);
-	//mpu_set_int_latched(1); // enable so that it stays high until it is read from
 	mpu_get_accel_sens(&(imu->aSens));
 	mpu_get_gyro_sens(&(imu->gSens));
+	mpu_set_int_level(0 /*0 means active high*/);
+	mpu_set_int_latched(1); // enable so that it stays high until it is read from
+
+}
+
+void IMU_Start(IMU_Handle_t imu)
+{
 	dmp_load_motion_driver_firmware();
-	dmp_set_orientation(inv_orientation_matrix_to_scalar(gyro_pdata.orientation));
+	dmp_set_orientation(inv_orientation_matrix_to_scalar(gyroOrientation));
 	dmp_register_tap_cb(tap_cb);
 	dmp_register_android_orient_cb(android_orient_cb);
 	dmp_enable_feature(DMP_FEATURE_6X_LP_QUAT | DMP_FEATURE_GYRO_CAL | DMP_FEATURE_TAP);
 	dmp_set_fifo_rate(imu->dmpRate);
 	mpu_reset_fifo();
 	mpu_set_dmp_state(1);
+	__HAL_GPIO_EXTI_CLEAR_FLAG(imu->interrupt_pin);
+	IMU_EnableInterrupt(imu);
+}
 
+void IMU_DisableInterrupt(IMU_Handle_t imu)
+{
+	HAL_NVIC_DisableIRQ(imu->exti_line);
+}
+
+void IMU_EnableInterrupt(IMU_Handle_t imu)
+{
+	HAL_NVIC_EnableIRQ(imu->exti_line);
 }
 
 void IMU_GetQuaternion(IMU_Handle_t imu)

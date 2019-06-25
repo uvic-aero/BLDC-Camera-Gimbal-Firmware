@@ -141,6 +141,7 @@ void Error_Handler(void);
 #define AXIS_IMU_ADDR			(0x68)
 #define BASE_IMU_ADDR			(0x69)
 #define IMU_DMP_FIFO_OUTPUT_RATE (1) // HZ: min 1, max 200
+#define AXIS_IMU_EXTI_LINE		EXTI15_10_IRQn
 
 
 // ENCODER GLOBAL CONFIGS

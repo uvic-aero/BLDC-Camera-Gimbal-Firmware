@@ -92,7 +92,7 @@ void StartDefaultTask(void const * argument);
 void vImuIRQHandler (void* pvParameters)
 {
 	// initialize the IMU, this needs to go here to prevent the fifo from starting interrupts
-	IMU_Init(&imu, AXIS_IMU);
+	IMU_Start(&imu);
 
 	while(true)
 	{
@@ -151,7 +151,7 @@ int main(void)
   MX_TIM15_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-
+  IMU_Init(&imu, AXIS_IMU);
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
