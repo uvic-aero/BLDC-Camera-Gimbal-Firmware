@@ -45,12 +45,14 @@ void Gimbal_Init(void)
 void Gimbal_InitSensors(void)
 {
 	IMU_Init(&imu, AXIS_IMU);
+	/// others... including any calibration required
 }
 
 /// Init the tasks
 void Gimbal_InitTasks(void)
 {
 	xTaskCreate(vImuIRQHandler,"IMUHandler",configMINIMAL_STACK_SIZE, NULL, PRIO_IMU, &xTaskIMU);
+	/// others...
 }
 
 /* ================== TASK FUNCTIONS ===================== */
@@ -69,6 +71,24 @@ void vImuIRQHandler(void* pvParameters)
 		printf("%d, %d, %d\n", (int)imu.pitch, (int)imu.yaw, (int)imu.roll);
 	}
 }
+
+void vUartRxIRQHandler(void* pvParameters)
+{
+	while(true)
+	{
+		vTaskDelay(1000);
+	}
+}
+
+void vGimbalControlLoopTask(void* pvParameters)
+{
+	while(true)
+	{
+		vTaskDelay(1000);
+	}
+}
+
+
 
 /* ============= HAL IRQ HANDLER CALLBACKS =============== */
 

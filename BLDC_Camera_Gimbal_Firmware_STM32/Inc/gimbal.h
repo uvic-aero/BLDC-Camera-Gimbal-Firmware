@@ -31,6 +31,11 @@ void Gimbal_InitTasks(void);
 /// IMU interrupt handler
 void vImuIRQHandler(void* pvParameters);
 
+/// Handler for UART receive interrupt
+void vUartRxIRQHandler(void* pvParameters);
+
+/// Primary Gimbal Control Loop
+void vGimbalControlLoopTask(void* pvParameters);
 /// others...
 
 /* ============= HAL IRQ HANDLER CALLBACKS =============== */
