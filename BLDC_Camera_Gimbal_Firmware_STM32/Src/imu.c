@@ -113,7 +113,11 @@ void IMU_Init(IMU_Handle_t imu, IMU_Identity_t ident)
 	mpu_get_accel_sens(&(imu->aSens));
 	mpu_get_gyro_sens(&(imu->gSens));
 	mpu_set_int_level(0 /*0 means active high*/);
-	mpu_set_int_latched(1); // enable so that it stays high until it is read from
+
+	/* !!!!!! DO NOT SET INT LATCHED !!!!!! */
+	// it causes failure for some reason
+	// without it, the pulse is still 50 us, which is plenty long
+	// mpu_set_int_latched(1);
 
 }
 
