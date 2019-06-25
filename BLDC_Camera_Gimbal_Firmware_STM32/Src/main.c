@@ -34,6 +34,7 @@
 #include "task.h"
 #include "queue.h"
 #include "FreeRTOSConfig.h"
+#include "imu.h"
 
 /* USER CODE END Includes */
 
@@ -67,7 +68,8 @@ UART_HandleTypeDef huart2;
 
 osThreadId defaultTaskHandle;
 /* USER CODE BEGIN PV */
-
+IMU_t imu;
+TaskHandle_t xImuIRQHandlerTask;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -85,12 +87,24 @@ static void MX_USART2_UART_Init(void);
 void StartDefaultTask(void const * argument);
 
 /* USER CODE BEGIN PFP */
-void vTest (void* pvparams){
-	while(1){
-		vTaskDelay(1000);
-		printf("test");
+
+
+void vImuIRQHandler (void* pvParameters)
+{
+	// initialize the IMU, this needs to go here to prevent the fifo from starting interrupts
+	IMU_Start(&imu);
+
+	while(true)
+	{
+		// wait for IMU interrupt
+		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+		IMU_GetQuaternion(&imu);
+		IMU_CalcEulerAngles(&imu);
+		printf("%d, %d, %d\n", (int)imu.pitch, (int)imu.yaw, (int)imu.roll);
 	}
+
 }
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -137,7 +151,7 @@ int main(void)
   MX_TIM15_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-
+  IMU_Init(&imu, AXIS_IMU);
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -163,7 +177,7 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
-  xTaskCreate(vTest,"testfunc",configMINIMAL_STACK_SIZE,NULL,2,NULL);
+  xTaskCreate(vImuIRQHandler,"IMUHandler",configMINIMAL_STACK_SIZE,NULL,3, &xImuIRQHandlerTask);
   /* USER CODE END RTOS_THREADS */
 
   /* Start scheduler */
@@ -298,7 +312,7 @@ static void MX_I2C2_Init(void)
 
   /* USER CODE END I2C2_Init 1 */
   hi2c2.Instance = I2C2;
-  hi2c2.Init.Timing = 0x2000090E;
+  hi2c2.Init.Timing = 0x0000020B;
   hi2c2.Init.OwnAddress1 = 0;
   hi2c2.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c2.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
@@ -806,40 +820,69 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
-  /*Configure GPIO pins : PC13 PC3 PC7 PC8 
-                           PC9 PC10 PC11 PC12 */
-  GPIO_InitStruct.Pin = GPIO_PIN_13|GPIO_PIN_3|GPIO_PIN_7|GPIO_PIN_8 
-                          |GPIO_PIN_9|GPIO_PIN_10|GPIO_PIN_11|GPIO_PIN_12;
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
+
+  /*Configure GPIO pins : CURR_MON_5V_Pin MOTOR2_EN3_Pin PC8 MOTOR3_NRESET_Pin 
+                           MOTOR3_EN3_Pin MOTOR3_EN2_Pin */
+  GPIO_InitStruct.Pin = CURR_MON_5V_Pin|MOTOR2_EN3_Pin|GPIO_PIN_8|MOTOR3_NRESET_Pin 
+                          |MOTOR3_EN3_Pin|MOTOR3_EN2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PA1 PA5 PA7 PA8 */
-  GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_5|GPIO_PIN_7|GPIO_PIN_8;
+  /*Configure GPIO pins : CURR_MON_12V_Pin MOTOR2_EN1_Pin PA8 */
+  GPIO_InitStruct.Pin = CURR_MON_12V_Pin|MOTOR2_EN1_Pin|GPIO_PIN_8;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PB1 PB2 PB10 PB11 
-                           PB12 PB13 PB15 PB4 
-                           PB5 PB6 PB9 */
-  GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_10|GPIO_PIN_11 
-                          |GPIO_PIN_12|GPIO_PIN_13|GPIO_PIN_15|GPIO_PIN_4 
-                          |GPIO_PIN_5|GPIO_PIN_6|GPIO_PIN_9;
+  /*Configure GPIO pin : PA5 */
+  GPIO_InitStruct.Pin = GPIO_PIN_5;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : MOTOR1_EN1_Pin PB2 MOTOR2_NRESET_Pin MOTOR1_EN3_Pin 
+                           MOTOR1_NRESET_Pin PB15 MOTOR2_NFAULT_Pin MOTOR1_NRESETB5_Pin 
+                           MOTOR2_EN2_Pin MOTOR3_NFAULT_Pin */
+  GPIO_InitStruct.Pin = MOTOR1_EN1_Pin|GPIO_PIN_2|MOTOR2_NRESET_Pin|MOTOR1_EN3_Pin 
+                          |MOTOR1_NRESET_Pin|GPIO_PIN_15|MOTOR2_NFAULT_Pin|MOTOR1_NRESETB5_Pin 
+                          |MOTOR2_EN2_Pin|MOTOR3_NFAULT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PD2 */
-  GPIO_InitStruct.Pin = GPIO_PIN_2;
+  /*Configure GPIO pin : AXIS_IMU_INT_Pin */
+  GPIO_InitStruct.Pin = AXIS_IMU_INT_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(AXIS_IMU_INT_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : MOTOR3_EN1_Pin */
+  GPIO_InitStruct.Pin = MOTOR3_EN1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOD, &GPIO_InitStruct);
+  HAL_GPIO_Init(MOTOR3_EN1_GPIO_Port, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
 }
 
 /* USER CODE BEGIN 4 */
-
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+	if (GPIO_Pin == AXIS_IMU_INT_Pin)
+	{
+		HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+		vTaskNotifyGiveFromISR( xImuIRQHandlerTask, &xHigherPriorityTaskWoken );
+		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+	}
+}
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -853,12 +896,10 @@ void StartDefaultTask(void const * argument)
 {
 
   /* USER CODE BEGIN 5 */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1000);
-    printf("Hello");
-  }
+	while(1)
+	{
+		osDelay(1000);
+	}
   /* USER CODE END 5 */ 
 }
 
