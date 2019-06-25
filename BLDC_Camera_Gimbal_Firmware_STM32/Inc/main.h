@@ -117,8 +117,9 @@ void Error_Handler(void);
 #define MOTOR3_EN3_GPIO_Port GPIOC
 #define MOTOR3_EN2_Pin GPIO_PIN_11
 #define MOTOR3_EN2_GPIO_Port GPIOC
-#define IMU_INT_2_Pin GPIO_PIN_12
-#define IMU_INT_2_GPIO_Port GPIOC
+#define AXIS_IMU_INT_Pin GPIO_PIN_12
+#define AXIS_IMU_INT_GPIO_Port GPIOC
+#define AXIS_IMU_INT_EXTI_IRQn EXTI15_10_IRQn
 #define MOTOR3_EN1_Pin GPIO_PIN_2
 #define MOTOR3_EN1_GPIO_Port GPIOD
 #define SWO_Pin GPIO_PIN_3
@@ -139,6 +140,7 @@ void Error_Handler(void);
 #define IMU_I2C_CHANNEL			hi2c2
 #define AXIS_IMU_ADDR			(0x68)
 #define BASE_IMU_ADDR			(0x69)
+#define IMU_DMP_FIFO_OUTPUT_RATE (1) // HZ: min 1, max 200
 
 
 // ENCODER GLOBAL CONFIGS

@@ -124,12 +124,14 @@ void IMU_Init(IMU_Handle_t imu, IMU_Identity_t ident)
 	/* Configuration applicable to all IMUs in system */
 
 	struct int_param_s int_params;
-	imu->dmpRate = 100;	// chosen rate Hz
+	imu->dmpRate = IMU_DMP_FIFO_OUTPUT_RATE;	// chosen rate Hz
 	imu->mSens = 0.15;	// constant
 
 	// IF ANY OF THESE CALLS FAIL IT WILL LOOP FOREVER!!!!!!!!!!!!!!!!!!
 	mpu_init(&int_params);
 	mpu_set_sensors(INV_XYZ_GYRO | INV_XYZ_ACCEL | INV_XYZ_COMPASS);
+	mpu_set_int_level(0 /*0 means active high*/);
+	//mpu_set_int_latched(1); // enable so that it stays high until it is read from
 	mpu_get_accel_sens(&(imu->aSens));
 	mpu_get_gyro_sens(&(imu->gSens));
 	dmp_load_motion_driver_firmware();
@@ -138,6 +140,7 @@ void IMU_Init(IMU_Handle_t imu, IMU_Identity_t ident)
 	dmp_register_android_orient_cb(android_orient_cb);
 	dmp_enable_feature(DMP_FEATURE_6X_LP_QUAT | DMP_FEATURE_GYRO_CAL | DMP_FEATURE_TAP);
 	dmp_set_fifo_rate(imu->dmpRate);
+	mpu_reset_fifo();
 	mpu_set_dmp_state(1);
 
 }
@@ -196,3 +199,7 @@ void IMU_CalcEulerAngles(IMU_Handle_t imu)
 	if (imu->roll < 0) imu->roll = 360.0 + imu->roll;
 	if (imu->yaw < 0) imu->yaw = 360.0 + imu->yaw;
 }
+
+
+
+

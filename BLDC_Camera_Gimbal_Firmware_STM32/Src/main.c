@@ -69,6 +69,7 @@ UART_HandleTypeDef huart2;
 osThreadId defaultTaskHandle;
 /* USER CODE BEGIN PV */
 IMU_t imu;
+TaskHandle_t xImuIRQHandlerTask;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -87,13 +88,23 @@ void StartDefaultTask(void const * argument);
 
 /* USER CODE BEGIN PFP */
 
-/*
-void vTest (void* pvParameters)
-{
 
+void vImuIRQHandler (void* pvParameters)
+{
+	// initialize the IMU, this needs to go here to prevent the fifo from starting interrupts
+	IMU_Init(&imu, AXIS_IMU);
+
+	while(true)
+	{
+		// wait for IMU interrupt
+		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+		IMU_GetQuaternion(&imu);
+		IMU_CalcEulerAngles(&imu);
+		printf("%d, %d, %d\n", (int)imu.pitch, (int)imu.yaw, (int)imu.roll);
+	}
 
 }
-*/
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -140,7 +151,7 @@ int main(void)
   MX_TIM15_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-  IMU_Init(&imu, AXIS_IMU);
+
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -166,7 +177,7 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
-  //xTaskCreate(vTest,"testfunc",configMINIMAL_STACK_SIZE,NULL,2,NULL);
+  xTaskCreate(vImuIRQHandler,"IMUHandler",configMINIMAL_STACK_SIZE,NULL,3, &xImuIRQHandlerTask);
   /* USER CODE END RTOS_THREADS */
 
   /* Start scheduler */
@@ -813,9 +824,9 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : CURR_MON_5V_Pin MOTOR2_EN3_Pin PC8 MOTOR3_NRESET_Pin 
-                           MOTOR3_EN3_Pin MOTOR3_EN2_Pin IMU_INT_2_Pin */
+                           MOTOR3_EN3_Pin MOTOR3_EN2_Pin */
   GPIO_InitStruct.Pin = CURR_MON_5V_Pin|MOTOR2_EN3_Pin|GPIO_PIN_8|MOTOR3_NRESET_Pin 
-                          |MOTOR3_EN3_Pin|MOTOR3_EN2_Pin|IMU_INT_2_Pin;
+                          |MOTOR3_EN3_Pin|MOTOR3_EN2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
@@ -843,16 +854,35 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
+  /*Configure GPIO pin : AXIS_IMU_INT_Pin */
+  GPIO_InitStruct.Pin = AXIS_IMU_INT_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(AXIS_IMU_INT_GPIO_Port, &GPIO_InitStruct);
+
   /*Configure GPIO pin : MOTOR3_EN1_Pin */
   GPIO_InitStruct.Pin = MOTOR3_EN1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(MOTOR3_EN1_GPIO_Port, &GPIO_InitStruct);
 
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
+
 }
 
 /* USER CODE BEGIN 4 */
-
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+	if (GPIO_Pin == AXIS_IMU_INT_Pin)
+	{
+		HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+		vTaskNotifyGiveFromISR( xImuIRQHandlerTask, &xHigherPriorityTaskWoken );
+		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+	}
+}
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
@@ -864,22 +894,11 @@ static void MX_GPIO_Init(void)
 /* USER CODE END Header_StartDefaultTask */
 void StartDefaultTask(void const * argument)
 {
-	int counter = 0;
-	TickType_t t;
-	vTaskDelay(3000);
 
   /* USER CODE BEGIN 5 */
 	while(1)
 	{
-		vTaskDelay(10);
-		IMU_GetQuaternion(&imu);
-		IMU_CalcEulerAngles(&imu);
-		printf("%d, %d, %d\n", (int)imu.pitch, (int)imu.yaw, (int)imu.roll);
-
-		if (counter == 0)
-			HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-
-		counter = (counter + 1) % 10;
+		osDelay(1000);
 	}
   /* USER CODE END 5 */ 
 }
