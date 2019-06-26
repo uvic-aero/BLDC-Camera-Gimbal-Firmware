@@ -24,6 +24,9 @@ void Gimbal_Init(void);
 /// Init the peripheral sensor modules
 void Gimbal_InitSensors(void);
 
+/// Init the queues used for inter-task comms
+void Gimbal_InitQueues(void);
+
 /// Init the tasks
 void Gimbal_InitTasks(void);
 

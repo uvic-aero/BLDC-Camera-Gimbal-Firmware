@@ -24,8 +24,9 @@
 /// Task Priority Levels
 /// TODO: these are fairly arbitrary right now, the ordering needs to be given more thought
 #define PRIO_IMU					((UBaseType_t)10)
+#define PRIO_CONTROL				((UBaseType_t)9)
 #define PRIO_TARGETSET				((UBaseType_t)9)
-#define PRIO_UARTRX					((UBaseType_t)8)
+#define PRIO_UARTRX					((UBaseType_t)7)
 
 /* ============= GLOBAL RESOURCE VARIABLES =============== */
 
@@ -33,6 +34,7 @@ static volatile IMU_t imu;
 
 /* ============== SYNCHRONIZATION OBJECTS ================ */
 
+QueueHandle_t xIMUQueue;
 QueueHandle_t xTargetQueue;
 QueueHandle_t xUartTxQueue;
 
@@ -48,6 +50,7 @@ TaskHandle_t xTaskTargetSet;
 void Gimbal_Init(void)
 {
 	Gimbal_InitSensors();
+	Gimbal_InitQueues();
 	Gimbal_InitTasks();
 
 	//TODO: whatever else needs to go in here
@@ -60,10 +63,24 @@ void Gimbal_InitSensors(void)
 	/// others... including any calibration required
 }
 
+void Gimbal_InitQueues(void)
+{
+	// IMU queue is of size 1, always overwrite
+	xIMUQueue = xQueueCreate(1, sizeof(EulerAngles_t));
+	vQueueAddToRegistry(xIMUQueue, "IMU_Q");
+
+	// Target queue will only be read sporadically because
+	// target update rate will be low relative to control loop rate
+	xTargetQueue = xQueueCreate(10, sizeof(EulerAngles_t));
+
+	/// do UART later
+}
+
 /// Init the tasks
 void Gimbal_InitTasks(void)
 {
 	xTaskCreate(vImuIRQHandler,"IMUHandler",configMINIMAL_STACK_SIZE, NULL, PRIO_IMU, &xTaskIMU);
+	xTaskCreate(vGimbalControlLoopTask, "CtrlLoop", configMINIMAL_STACK_SIZE, NULL, PRIO_CONTROL, &xTaskGimbalControl);
 	/// others...
 }
 
@@ -80,7 +97,8 @@ void vImuIRQHandler(void* pvParameters)
 		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 		IMU_GetQuaternion(&imu);
 		IMU_CalcEulerAngles(&imu);
-		printf("%d, %d, %d\n", (int)(imu.pos.pitch), (int)(imu.pos.yaw), (int)(imu.pos.roll));
+
+		xQueueSend(xIMUQueue, (void*)&(imu.pos), (TickType_t)0);
 	}
 }
 
@@ -102,9 +120,15 @@ void vUartTxTask(void* pvParameters)
 
 void vGimbalControlLoopTask(void* pvParameters)
 {
+	EulerAngles_t currCameraFrame;
+	EulerAngles_t targetCameraFrame;
+	EulerAngles_t errorCameraFrame;
+
 	while(true)
 	{
-		vTaskDelay(1000);
+		/// synchronize to arrival of IMU data
+		xQueueReceive(xIMUQueue, &currCameraFrame, portMAX_DELAY);
+		printf("%d, %d, %d\n", (int)(currCameraFrame.pitch), (int)(currCameraFrame.yaw), (int)(currCameraFrame.roll));
 	}
 }
 
