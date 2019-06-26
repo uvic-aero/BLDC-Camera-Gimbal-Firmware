@@ -172,6 +172,8 @@ void IMU_CalcEulerAngles(IMU_Handle_t imu)
 {
 	// Temporary implementation, might use MPL instead, haven't explored that yet
 
+	float pitch, yaw, roll;
+
 	float dqw = qToFloat(imu->quat[0], 30);
 	float dqx = qToFloat(imu->quat[1], 30);
 	float dqy = qToFloat(imu->quat[2], 30);
@@ -188,16 +190,20 @@ void IMU_CalcEulerAngles(IMU_Handle_t imu)
 	t2 = t2 > 1.0f ? 1.0f : t2;
 	t2 = t2 < -1.0f ? -1.0f : t2;
 
-	imu->pitch = asin(t2) * 2;
-	imu->roll = atan2(t3, t4);
-	imu->yaw = atan2(t1, t0);
+	pitch = asin(t2) * 2;
+	roll = atan2(t3, t4);
+	yaw = atan2(t1, t0);
 
-	imu->pitch *= (180.0 / M_PI);
-	imu->roll *= (180.0 / M_PI);
-	imu->yaw *= (180.0 / M_PI);
-	if (imu->pitch < 0) imu->pitch = 360.0 + imu->pitch;
-	if (imu->roll < 0) imu->roll = 360.0 + imu->roll;
-	if (imu->yaw < 0) imu->yaw = 360.0 + imu->yaw;
+	pitch *= (180.0 / M_PI);
+	roll *= (180.0 / M_PI);
+	yaw *= (180.0 / M_PI);
+	if (pitch < 0) pitch = 360.0 + pitch;
+	if (roll < 0) roll = 360.0 + roll;
+	if (yaw < 0) yaw = 360.0 + yaw;
+
+	imu->pos.pitch = pitch;
+	imu->pos.roll = roll;
+	imu->pos.yaw = yaw;
 }
 
 
