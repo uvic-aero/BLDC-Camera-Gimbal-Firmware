@@ -21,15 +21,27 @@
 /// others...
 
 /*====================== DEFINES ========================= */
-#define PRIO_IMU ((UBaseType_t)10)
+/// Task Priority Levels
+/// TODO: these are fairly arbitrary right now, the ordering needs to be given more thought
+#define PRIO_IMU					((UBaseType_t)10)
+#define PRIO_TARGETSET				((UBaseType_t)9)
+#define PRIO_UARTRX					((UBaseType_t)8)
 
 /* ============= GLOBAL RESOURCE VARIABLES =============== */
 
 static volatile IMU_t imu;
 
+/* ============== SYNCHRONIZATION OBJECTS ================ */
+
+QueueHandle_t xTargetQueue;
+QueueHandle_t xUartTxQueue;
+
 /* =================== TASK HANDLES ====================== */
 /// IMU handler task handle
 TaskHandle_t xTaskIMU;
+TaskHandle_t xTaskUartRx;
+TaskHandle_t xTaskGimbalControl;
+TaskHandle_t xTaskTargetSet;
 
 /* ================== INIT FUNCTIONS ===================== */
 /// Top-level Init function
@@ -73,6 +85,14 @@ void vImuIRQHandler(void* pvParameters)
 }
 
 void vUartRxIRQHandler(void* pvParameters)
+{
+	while(true)
+	{
+		vTaskDelay(1000);
+	}
+}
+
+void vUartTxTask(void* pvParameters)
 {
 	while(true)
 	{

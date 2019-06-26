@@ -34,6 +34,9 @@ void vImuIRQHandler(void* pvParameters);
 /// Handler for UART receive interrupt
 void vUartRxIRQHandler(void* pvParameters);
 
+/// Task for transmitting data over UART
+void vUartTxTask(void* pvParameters);
+
 /// Primary Gimbal Control Loop
 void vGimbalControlLoopTask(void* pvParameters);
 
