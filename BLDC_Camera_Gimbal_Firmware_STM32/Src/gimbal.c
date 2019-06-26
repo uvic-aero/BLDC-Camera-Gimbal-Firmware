@@ -80,7 +80,7 @@ void vImuIRQHandler(void* pvParameters)
 		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 		IMU_GetQuaternion(&imu);
 		IMU_CalcEulerAngles(&imu);
-		printf("%d, %d, %d\n", (int)imu.pitch, (int)imu.yaw, (int)imu.roll);
+		printf("%d, %d, %d\n", (int)(imu.pos.pitch), (int)(imu.pos.yaw), (int)(imu.pos.roll));
 	}
 }
 
