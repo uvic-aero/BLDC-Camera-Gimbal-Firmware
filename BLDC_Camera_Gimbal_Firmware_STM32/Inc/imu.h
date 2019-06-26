@@ -31,9 +31,7 @@ typedef struct IMU_t
 	unsigned short aSens; 	// accel sensitivity scalar
 	float gSens;		  	// gyro sensitivity scalar
 	float mSens; 			// magnetic sensitivity scalar
-	float pitch;  			// degrees
-	float yaw;				// degrees
-	float roll;				// degrees
+	EulerAngles_t			pos;
 	long quat[4];			// raw sensor output
 	unsigned long timestamp; // used for other computation
 
