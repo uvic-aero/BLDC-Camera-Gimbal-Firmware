@@ -24,6 +24,7 @@
 #include "cmsis_os.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "Comms.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -43,11 +44,14 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
-
+extern uint8_t uart_ptr_pos;
+extern size_t old_pos;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
+extern void COMMS_DMA_IrqHandler(DMA_HandleTypeDef *hdma, UART_HandleTypeDef *huart);
+extern void COMMS_USART2_IrqHandler(UART_HandleTypeDef *huart, DMA_HandleTypeDef *hdma);
 
 /* USER CODE END PFP */
 
@@ -57,6 +61,8 @@
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
+extern DMA_HandleTypeDef hdma_usart2_rx;
+extern UART_HandleTypeDef huart2;
 extern TIM_HandleTypeDef htim6;
 
 /* USER CODE BEGIN EV */
@@ -158,6 +164,51 @@ void DebugMon_Handler(void)
 /* For the available peripheral interrupt handler names,                      */
 /* please refer to the startup file (startup_stm32f3xx.s).                    */
 /******************************************************************************/
+
+/**
+  * @brief This function handles DMA1 channel6 global interrupt.
+  */
+void DMA1_Channel6_IRQHandler(void)
+{
+  /* USER CODE BEGIN DMA1_Channel6_IRQn 0 */
+
+  /* USER CODE END DMA1_Channel6_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_usart2_rx);
+  /* USER CODE BEGIN DMA1_Channel6_IRQn 1 */
+//  COMMS_DMA_IrqHandler(&hdma_usart2_rx, &huart2);
+
+  // check for transfer complete interrupt
+  if (__HAL_DMA_GET_IT_SOURCE(&hdma_usart2_rx, DMA_IT_TC))
+  {
+	  __HAL_DMA_CLEAR_FLAG(&hdma_usart2_rx, DMA_FLAG_TC1);	// clear the interrupt flag
+//	  __HAL_DMA_DISABLE_IT(&hdma_usart2_rx, DMA_IT_TC);		// clear the interrupt flag
+	  COMMS_RX_Check();										// check for data to process
+  }
+
+  /* USER CODE END DMA1_Channel6_IRQn 1 */
+}
+
+/**
+  * @brief This function handles USART2 global interrupt / USART2 wake-up interrupt through EXTI line 26.
+  */
+void USART2_IRQHandler(void)
+{
+  /* USER CODE BEGIN USART2_IRQn 0 */
+
+  /* USER CODE END USART2_IRQn 0 */
+  HAL_UART_IRQHandler(&huart2);
+  /* USER CODE BEGIN USART2_IRQn 1 */
+//  COMMS_USART2_IrqHandler(&huart2, &hdma_usart2_rx);
+
+  // check for IDLE line interrupt and that there is new data in DMA buffer
+  if (__HAL_UART_GET_FLAG(&huart2, UART_FLAG_IDLE))
+  {
+	  __HAL_UART_CLEAR_FLAG(&huart2, UART_CLEAR_IDLEF);		// clear the idle interrupt flag
+	  COMMS_RX_Check();										// check for data to process
+  }
+
+  /* USER CODE END USART2_IRQn 1 */
+}
 
 /**
   * @brief This function handles TIM6 global interrupt and DAC1 underrun interrupt.

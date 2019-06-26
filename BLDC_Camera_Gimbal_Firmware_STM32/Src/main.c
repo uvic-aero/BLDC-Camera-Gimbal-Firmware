@@ -24,7 +24,6 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
 // Standard Includes
 #include <stdio.h>
 
@@ -34,9 +33,10 @@
 #include "task.h"
 #include "queue.h"
 #include "FreeRTOSConfig.h"
+#include "Comms.h"
 
 /* USER CODE END Includes */
-#include "Comms.h"
+
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 
@@ -50,6 +50,11 @@
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
 
+#define DMA_RX_BUFFER_SIZE          64
+uint8_t DMA_RX_Buffer[DMA_RX_BUFFER_SIZE];
+
+#define UART_BUFFER_SIZE            20
+uint8_t UART_Buffer[UART_BUFFER_SIZE];
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -64,6 +69,7 @@ TIM_HandleTypeDef htim8;
 TIM_HandleTypeDef htim15;
 
 UART_HandleTypeDef huart2;
+DMA_HandleTypeDef hdma_usart2_rx;
 
 osThreadId defaultTaskHandle;
 /* USER CODE BEGIN PV */
@@ -73,6 +79,7 @@ osThreadId defaultTaskHandle;
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_I2C2_Init(void);
 static void MX_TIM1_Init(void);
@@ -91,6 +98,26 @@ void vTest (void* pvparams){
 		printf("test");
 	}
 }
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+  puts("from HAL_UART_RxCpltCallback");
+  HAL_UART_Transmit(&huart2, DMA_RX_Buffer, DMA_RX_BUFFER_SIZE, 10000);
+//  memset(DMA_RX_Buffer, 0, DMA_RX_BUFFER_SIZE);
+}
+
+void HAL_UART_RxHalfCpltCallback(UART_HandleTypeDef *huart)
+{
+	puts("from HAL_UART_RxHalfCpltCallback");
+	uint16_t rxSize = huart->RxXferSize;
+}
+
+//void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+//{
+//	  puts("from HAL_UART_TxCpltCallback");
+//	  HAL_UART_Transmit(&huart2, DMA_RX_Buffer, DMA_RX_BUFFER_SIZE, 10000);
+//
+//}
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -127,6 +154,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_I2C1_Init();
   MX_I2C2_Init();
   MX_TIM1_Init();
@@ -138,9 +166,18 @@ int main(void)
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 
+  HAL_UART_Receive_DMA(&huart2, DMA_RX_Buffer, DMA_RX_BUFFER_SIZE);
+
+  __HAL_DMA_DISABLE_IT(&hdma_usart2_rx, DMA_IT_HT); 	// Disable half transfer complete interrupt
+  __HAL_UART_ENABLE_IT (&huart2, UART_IT_IDLE);		// Enable idle line interrupt
+
+//  COMMS_RX_Check();
   COMMS_Data_Message messages[] = { { .type = 0b10101011, .value = 0xFF }, { .type = 0b10101011, .value = 0xAA } };
   COMMS_Header events[] = { 0x33 , 0x69 };
   SendData(messages, 2, events, 2);
+
+
+
 
   /* USER CODE END 2 */
 
@@ -791,6 +828,21 @@ static void MX_USART2_UART_Init(void)
   /* USER CODE BEGIN USART2_Init 2 */
 
   /* USER CODE END USART2_Init 2 */
+
+}
+
+/** 
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void) 
+{
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA1_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Channel6_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel6_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel6_IRQn);
 
 }
 
