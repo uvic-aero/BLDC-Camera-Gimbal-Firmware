@@ -89,6 +89,15 @@ void vGimbalControlLoopTask(void* pvParameters)
 }
 
 
+void vTargetSettingTask(void* pvParameters)
+{
+	while(true)
+	{
+		vTaskDelay(1000);
+	}
+}
+
+
 
 /* ============= HAL IRQ HANDLER CALLBACKS =============== */
 

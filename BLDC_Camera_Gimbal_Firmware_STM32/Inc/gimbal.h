@@ -36,6 +36,9 @@ void vUartRxIRQHandler(void* pvParameters);
 
 /// Primary Gimbal Control Loop
 void vGimbalControlLoopTask(void* pvParameters);
+
+/// Target setting task
+void vTargetSettingTask(void* pvParameters);
 /// others...
 
 /* ============= HAL IRQ HANDLER CALLBACKS =============== */
