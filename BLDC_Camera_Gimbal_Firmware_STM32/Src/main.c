@@ -34,6 +34,7 @@
 #include "task.h"
 #include "queue.h"
 #include "FreeRTOSConfig.h"
+#include "encoder.h"
 
 /* USER CODE END Includes */
 
@@ -86,31 +87,20 @@ void StartDefaultTask(void const * argument);
 
 /* USER CODE BEGIN PFP */
 void vTest (void* pvparams){
+	Encoder_t encoder;
+	Encoder_Handle_t encoderHandle = &encoder;
+	Encoder_Init(encoderHandle, PITCH_ENCODER, 0x3);
+	Set_Zero_Position(encoderHandle, 0x111);
+	float debug1;
+	uint16_t debug2;
+
 	while(1){
 		vTaskDelay(100);
 
-		I2C_HandleTypeDef* i2c1Handle = &hi2c1;
-		uint32_t timeout = 0xFFFFFFFF;
+		debug1 = Poll_Encoder(encoderHandle);
+		debug2 = encoderHandle->angleRaw;
 
-		uint16_t encoderAddressBase = 0x40;
-		uint16_t A1A2PinConfig = 0x03;
-		uint16_t encoderAddress = (encoderAddressBase | A1A2PinConfig);
-
-		uint16_t memAddressAngleHigh = 0xFE;
-		uint16_t memAddressAngleLow = 0xFF;
-		uint16_t memAddressSize = 0x1;
-
-		uint8_t dataBufferHigh = 0x0;
-		uint8_t dataBufferLow = 0x0;
-		uint16_t dataSize = 0x1;
-
-		HAL_I2C_Mem_Read(i2c1Handle, (encoderAddress << 1), memAddressAngleHigh, memAddressSize, &dataBufferHigh, dataSize, timeout);
-		HAL_I2C_Mem_Read(i2c1Handle, (encoderAddress << 1), memAddressAngleLow, memAddressSize, &dataBufferLow, dataSize, timeout);
-
-		uint16_t dataOutput = (dataBufferHigh << 6) | (dataBufferLow & 0x3F);
-		float debugAngle = ((float)dataOutput / 16383.0) * 360.0;
-
-		printf("\nRaw data: %u Angle: %u ", dataOutput, (uint32_t)debugAngle);
+		printf("\nRaw data: %u Angle: %u ", debug2, (uint32_t)debug1);
 	}
 }
 /* USER CODE END PFP */
