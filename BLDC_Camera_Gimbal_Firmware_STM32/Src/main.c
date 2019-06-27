@@ -88,23 +88,29 @@ void StartDefaultTask(void const * argument);
 void vTest (void* pvparams){
 	while(1){
 		vTaskDelay(100);
+
 		I2C_HandleTypeDef* i2c1Handle = &hi2c1;
+		uint32_t timeout = 0xFFFFFFFF;
+
 		uint16_t encoderAddressBase = 0x40;
-		uint16_t encoderAddress = (encoderAddressBase | 0x02);
+		uint16_t A1A2PinConfig = 0x03;
+		uint16_t encoderAddress = (encoderAddressBase | A1A2PinConfig);
+
 		uint16_t memAddressAngleHigh = 0xFE;
 		uint16_t memAddressAngleLow = 0xFF;
 		uint16_t memAddressSize = 0x1;
-		uint8_t dataBufferHigh;
-		uint8_t dataBufferLow;
+
+		uint8_t dataBufferHigh = 0x0;
+		uint8_t dataBufferLow = 0x0;
 		uint16_t dataSize = 0x1;
-		uint32_t timeout = 100;
 
 		HAL_I2C_Mem_Read(i2c1Handle, (encoderAddress << 1), memAddressAngleHigh, memAddressSize, &dataBufferHigh, dataSize, timeout);
 		HAL_I2C_Mem_Read(i2c1Handle, (encoderAddress << 1), memAddressAngleLow, memAddressSize, &dataBufferLow, dataSize, timeout);
 
 		uint16_t dataOutput = (dataBufferHigh << 6) | (dataBufferLow & 0x3F);
+		float debugAngle = ((float)dataOutput / 16383.0) * 360.0;
 
-		printf("Angle: %d %d %d\n", dataOutput, dataBufferHigh, dataBufferLow);
+		printf("\nRaw data: %u Angle: %u ", dataOutput, (uint32_t)debugAngle);
 	}
 }
 /* USER CODE END PFP */
@@ -873,7 +879,6 @@ void StartDefaultTask(void const * argument)
   for(;;)
   {
     osDelay(1000);
-    printf("Hello");
   }
   /* USER CODE END 5 */ 
 }
