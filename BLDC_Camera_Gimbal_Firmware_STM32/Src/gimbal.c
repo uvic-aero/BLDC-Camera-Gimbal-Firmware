@@ -28,6 +28,9 @@
 #define PRIO_TARGETSET				((UBaseType_t)9)
 #define PRIO_UARTRX					((UBaseType_t)7)
 
+#define QSIZE_IMU					(1)
+#define QSIZE_TARGET				(1)
+
 /* ============= GLOBAL RESOURCE VARIABLES =============== */
 
 static volatile IMU_t imu;
@@ -71,7 +74,8 @@ void Gimbal_InitQueues(void)
 
 	// Target queue will only be read sporadically because
 	// target update rate will be low relative to control loop rate
-	xTargetQueue = xQueueCreate(10, sizeof(EulerAngles_t));
+	xTargetQueue = xQueueCreate(1, sizeof(EulerAngles_t));
+	vQueueAddToRegistry(xTargetQueue, "Target_Q");
 
 	/// do UART later
 }
@@ -81,6 +85,7 @@ void Gimbal_InitTasks(void)
 {
 	xTaskCreate(vImuIRQHandler,"IMUHandler",configMINIMAL_STACK_SIZE, NULL, PRIO_IMU, &xTaskIMU);
 	xTaskCreate(vGimbalControlLoopTask, "CtrlLoop", configMINIMAL_STACK_SIZE, NULL, PRIO_CONTROL, &xTaskGimbalControl);
+	xTaskCreate(vTargetSettingTask, "TargetSet", configMINIMAL_STACK_SIZE, NULL, PRIO_TARGETSET, &xTaskTargetSet );
 	/// others...
 }
 
@@ -120,24 +125,46 @@ void vUartTxTask(void* pvParameters)
 
 void vGimbalControlLoopTask(void* pvParameters)
 {
-	EulerAngles_t currCameraFrame;
-	EulerAngles_t targetCameraFrame;
-	EulerAngles_t errorCameraFrame;
+	EulerAngles_t currCameraPos = {.pitch = 0.0, .yaw = 0.0, .roll = 0.0 };
+	EulerAngles_t targetCameraPos = {.pitch = 0.0, .yaw = 0.0, .roll = 0.0 }; // TODO: find real initial target for startup
+	EulerAngles_t currMotorPos = {.pitch = 0.0, .yaw = 0.0, .roll = 0.0 };
+	EulerAngles_t targetMotorPos = {.pitch = 0.0, .yaw = 0.0, .roll = 0.0 };
 
 	while(true)
 	{
-		/// synchronize to arrival of IMU data
-		xQueueReceive(xIMUQueue, &currCameraFrame, portMAX_DELAY);
-		printf("%d, %d, %d\n", (int)(currCameraFrame.pitch), (int)(currCameraFrame.yaw), (int)(currCameraFrame.roll));
+		// synchronize to arrival of IMU data
+		xQueueReceive(xIMUQueue, &currCameraPos, portMAX_DELAY);
+		printf("%d, %d, %d\n", (int)(currCameraPos.pitch), (int)(currCameraPos.yaw), (int)(currCameraPos.roll));
+
+		// try reading from target queue, if there is nothing, move on, don't wait
+		// if there is something, the new target will be updated in targetCameraPos
+		xQueueReceive(xTargetQueue, &targetCameraPos, (TickType_t)0);
+
+		/// GET ENCODER VALUES HERE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		// currentMotorPos.pitch = ...
+		// currentMotorPos.roll = ...
+		// currentMotorPos.yaw = ...
+
+		targetMotorPos = Gimbal_CalcMotorTargetPos(currCameraPos, targetCameraPos, currMotorPos);
+		printf("%d\n", targetMotorPos);
+
+		// set the motor positions here // EXAMPLE!!!!! Not necessarily how it will look!
+		// the PID loops are in here... maybe? maybe we should break them out and just expose motor duty cycle directly?
+		// Motor_SetPos(&yaw_motor, targetMotorPos.yaw, currentMotorPos.yaw);
+		// Motor_SetPos(&pitch_motor, targetMotorPos.pitch, currentMotorPos.pitch);
+		// Motor_SetPos(&roll_motor, targetMotorPos.roll, currentMotorPos.roll);
+
 	}
 }
 
 
 void vTargetSettingTask(void* pvParameters)
 {
+	EulerAngles_t newTarget = {.pitch = 0.0, .yaw = 0.0, .roll = 0.0 };
 	while(true)
 	{
 		vTaskDelay(1000);
+		xQueueSend(xTargetQueue, (void*)(&newTarget), (TickType_t)0);
 	}
 }
 
@@ -155,4 +182,29 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 		vTaskNotifyGiveFromISR( xTaskIMU, &xHigherPriorityTaskWoken );
 		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 	}
+}
+
+EulerAngles_t Gimbal_CalcMotorTargetPos(EulerAngles_t currIMU, EulerAngles_t targIMU, EulerAngles_t currMotorPos)
+{
+	EulerAngles_t targMotorPos = {.pitch = 0.0, .yaw = 0.0, .roll = 0.0,};
+
+#if ENABLED(MODE_2AXIS)
+
+	// assume we are controlling pitch and roll
+
+	// get the error from the IMU position
+	float errPitch	=	Angles_CalcDist(targIMU.pitch, currIMU.pitch);
+	float errRoll	=	Angles_CalcDist(targIMU.roll,  currIMU.roll);
+
+	// for two axis control, we just need to calculate the next motor position
+	// by adding the IMU error to current motor position
+	// i.e. move in the direction that brings us towards the target
+	targMotorPos.pitch	+= errPitch;
+	targMotorPos.roll	+= errRoll;
+
+#elif ENABLED(MODE_3AXIS)
+#error 3-axis aint enabled yet yo
+#error its an inverse kinematic problem son
+#endif
+	return targMotorPos;
 }

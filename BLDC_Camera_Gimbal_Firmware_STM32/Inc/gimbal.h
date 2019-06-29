@@ -8,6 +8,8 @@
 #ifndef GIMBAL_H_
 #define GIMBAL_H_
 
+#include "angles.h"
+
 /* The idea of this module (header/source) is that it will contain the
  * entire structure of the gimbal application.
  *
@@ -49,5 +51,10 @@ void vTargetSettingTask(void* pvParameters);
 
 /* ============= HAL IRQ HANDLER CALLBACKS =============== */
 /// defined in the source file, declared in various system headers
+
+/* =============== CONTROL MATH FUNCTIONS ================ */
+/// Wrapper for the "Get desired motor position" logic
+/// This is wrapped since it will change for 2 vs 3 axis
+EulerAngles_t Gimbal_CalcMotorTargetPos(EulerAngles_t currIMU, EulerAngles_t targIMU, EulerAngles_t currMotorPos);
 
 #endif /* GIMBAL_H_ */
