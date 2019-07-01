@@ -89,10 +89,12 @@ void StartDefaultTask(void const * argument);
 void vTest (void* pvparams){
 	Motor_t motor;
 	Motor_Handle_t motorHandle = &motor;
-	Motor_Init(motorHandle, YAW_MOTOR, COMMUTATE);
+	Motor_Init(motorHandle, YAW_MOTOR);
+	Set_Operation_Mode(motorHandle, COMMUTATE);
+	Set_Motor_Parameters(motorHandle, TURN_CCW, 64);
 	while(1){
-		vTaskDelay(100);
-		Set_Operation_Mode(motorHandle, COMMUTATE);
+		vTaskDelay(10);
+		Commutate_Motor(motorHandle);
 	}
 }
 /* USER CODE END PFP */

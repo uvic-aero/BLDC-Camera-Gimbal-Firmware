@@ -12,7 +12,6 @@
 
 #define TURN_CW (uint8_t)0x00
 #define TURN_CCW (uint8_t)0x01
-#define DUTY_CYCLE (uint8_t)(60)
 
 extern TIM_HandleTypeDef htim1;
 extern TIM_HandleTypeDef htim3;
@@ -33,53 +32,31 @@ typedef enum Operation_Mode_t
 	COAST
 } Operation_Mode_t;
 
-typedef enum Commutation_State_t
-{
-	STATE_1,
-	STATE_2,
-	STATE_3,
-	STATE_4,
-	STATE_5,
-	STATE_6
-} Commutation_State_t;
-
 typedef struct Motor_t
 {
 	Motor_Identity_t identity;
 	Operation_Mode_t mode;
-	Commutation_State_t state;
 
 	TIM_HandleTypeDef* timer;
 
-	uint16_t phaseChannelA;
-	uint16_t phasePinA;
-	GPIO_TypeDef* phasePortA;
-	uint16_t enablePinA;
-	GPIO_TypeDef* enablePortA;
-
-	uint16_t phaseChannelB;
-	uint16_t phasePinB;
-	GPIO_TypeDef* phasePortB;
-	uint16_t enablePinB;
-	GPIO_TypeDef* enablePortB;
-
-	uint16_t phaseChannelC;
-	uint16_t phasePinC;
-	GPIO_TypeDef* phasePortC;
-	uint16_t enablePinC;
-	GPIO_TypeDef* enablePortC;
+	uint16_t phaseChannel[3];
+	uint16_t phasePin[3];
+	GPIO_TypeDef* phasePort[3];
+	uint16_t enablePin[3];
+	GPIO_TypeDef* enablePort[3];
+	uint16_t phaseIndex[3];
 
 	uint8_t direction;
-	float speedTarget;
-	float angleTarget;
+	uint8_t maxPulseSize;
 
 } Motor_t;
 
 typedef Motor_t* Motor_Handle_t;
 
-void Motor_Init(Motor_Handle_t motor, Motor_Identity_t identity, Operation_Mode_t mode);
+void Motor_Init(Motor_Handle_t motor, Motor_Identity_t identity);
 void Set_Operation_Mode(Motor_Handle_t motor, Operation_Mode_t mode);
+void Commutate_Motor(Motor_Handle_t motor);
 void Run_Motor(Motor_Handle_t motor);
-void Set_Motor_Parameters(Motor_Handle_t motor, uint8_t direction, float speed, float angle);
+void Set_Motor_Parameters(Motor_Handle_t motor, uint8_t direction, uint8_t pulse);
 
 #endif /* MOTOR_H_ */
