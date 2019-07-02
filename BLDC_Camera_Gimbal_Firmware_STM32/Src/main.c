@@ -86,17 +86,7 @@ static void MX_USART2_UART_Init(void);
 void StartDefaultTask(void const * argument);
 
 /* USER CODE BEGIN PFP */
-void vTest (void* pvparams){
-	Motor_t motor;
-	Motor_Handle_t motorHandle = &motor;
-	Motor_Init(motorHandle, YAW_MOTOR);
-	Set_Operation_Mode(motorHandle, COMMUTATE);
-	Set_Motor_Parameters(motorHandle, TURN_CCW, 64);
-	while(1){
-		vTaskDelay(10);
-		Commutate_Motor(motorHandle);
-	}
-}
+
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -169,7 +159,7 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
-  xTaskCreate(vTest,"testfunc",configMINIMAL_STACK_SIZE,NULL,2,NULL);
+
   /* USER CODE END RTOS_THREADS */
 
   /* Start scheduler */
