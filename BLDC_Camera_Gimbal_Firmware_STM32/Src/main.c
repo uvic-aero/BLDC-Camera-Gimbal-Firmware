@@ -34,6 +34,7 @@
 #include "task.h"
 #include "queue.h"
 #include "FreeRTOSConfig.h"
+#include "encoder.h"
 #include "imu.h"
 #include "motor.h"
 
