@@ -71,7 +71,9 @@ UART_HandleTypeDef huart2;
 
 osThreadId defaultTaskHandle;
 /* USER CODE BEGIN PV */
-
+IMU_t imu;
+TaskHandle_t xImuIRQHandlerTask;
+TaskHandle_t xRcInputHandlerTask;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -89,6 +91,44 @@ static void MX_USART2_UART_Init(void);
 void StartDefaultTask(void const * argument);
 
 /* USER CODE BEGIN PFP */
+
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
+{
+	// RC PITCH INPUT IRQ
+	if (htim->Instance == TIM15 && htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)
+	{
+		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+		vTaskNotifyGiveFromISR( xRcInputHandlerTask, &xHigherPriorityTaskWoken );
+		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+	}
+}
+
+void vRcInputHandler (void* pvParameters)
+{
+	// initialize the IMU, this needs to go here to prevent the fifo from starting interrupts
+
+	uint32_t period_ticks = 0;
+	uint32_t pulse_ticks = 0;
+	uint32_t duty_cycle = 0;
+
+	while(true)
+	{
+		// wait for IMU interrupt
+		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+		// period and pulse in timer ticks
+		period_ticks = HAL_TIM_ReadCapturedValue(&htim15, TIM_CHANNEL_2);
+		pulse_ticks = HAL_TIM_ReadCapturedValue(&htim15, TIM_CHANNEL_1);
+
+		if (period_ticks != 0)
+			duty_cycle = (pulse_ticks * 100) / period_ticks;
+		else
+			duty_cycle = 0;
+
+		printf("period ticks: %d; pulse ticks: %d\n", period_ticks, pulse_ticks);
+	}
+
+}
 
 /* USER CODE END PFP */
 
@@ -162,8 +202,7 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
-  Gimbal_Init();
-
+  xTaskCreate(vRcInputHandler,"RcPitch",configMINIMAL_STACK_SIZE,NULL,3, &xRcInputHandlerTask);
   /* USER CODE END RTOS_THREADS */
 
   /* Start scheduler */
@@ -437,7 +476,7 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 0;
+  htim2.Init.Prescaler = 72;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim2.Init.Period = 0;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -721,9 +760,9 @@ static void MX_TIM15_Init(void)
 
   /* USER CODE END TIM15_Init 1 */
   htim15.Instance = TIM15;
-  htim15.Init.Prescaler = 0;
+  htim15.Init.Prescaler = 72;
   htim15.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim15.Init.Period = 0;
+  htim15.Init.Period = 0xffff;
   htim15.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim15.Init.RepetitionCounter = 0;
   htim15.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -916,7 +955,7 @@ void StartDefaultTask(void const * argument)
   /* USER CODE BEGIN 5 */
 	while(1)
 	{
-		osDelay(1000);
+		osDelay(100000);
 	}
   /* USER CODE END 5 */ 
 }
