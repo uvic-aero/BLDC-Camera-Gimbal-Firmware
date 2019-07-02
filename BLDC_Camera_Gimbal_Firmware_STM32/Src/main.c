@@ -35,6 +35,7 @@
 #include "queue.h"
 #include "FreeRTOSConfig.h"
 #include "imu.h"
+#include "motor.h"
 
 /* USER CODE END Includes */
 
@@ -346,9 +347,9 @@ static void MX_TIM1_Init(void)
 
   /* USER CODE END TIM1_Init 1 */
   htim1.Instance = TIM1;
-  htim1.Init.Prescaler = 0;
+  htim1.Init.Prescaler = 8;
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1.Init.Period = 0;
+  htim1.Init.Period = 256;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
   htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -499,6 +500,7 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 0 */
 
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
   TIM_OC_InitTypeDef sConfigOC = {0};
 
@@ -506,11 +508,20 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 0;
+  htim3.Init.Prescaler = 8;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim3.Init.Period = 0;
+  htim3.Init.Period = 256;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim3) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim3, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
   if (HAL_TIM_PWM_Init(&htim3) != HAL_OK)
   {
     Error_Handler();
@@ -556,6 +567,7 @@ static void MX_TIM4_Init(void)
 
   /* USER CODE END TIM4_Init 0 */
 
+  TIM_ClockConfigTypeDef sClockSourceConfig = {0};
   TIM_MasterConfigTypeDef sMasterConfig = {0};
   TIM_OC_InitTypeDef sConfigOC = {0};
 
@@ -563,11 +575,20 @@ static void MX_TIM4_Init(void)
 
   /* USER CODE END TIM4_Init 1 */
   htim4.Instance = TIM4;
-  htim4.Init.Prescaler = 0;
+  htim4.Init.Prescaler = 8;
   htim4.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim4.Init.Period = 0;
+  htim4.Init.Period = 256;
   htim4.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim4) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  sClockSourceConfig.ClockSource = TIM_CLOCKSOURCE_INTERNAL;
+  if (HAL_TIM_ConfigClockSource(&htim4, &sClockSourceConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
   if (HAL_TIM_PWM_Init(&htim4) != HAL_OK)
   {
     Error_Handler();
@@ -804,54 +825,69 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(MOTOR2_EN1_GPIO_Port, MOTOR2_EN1_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : CURR_MON_5V_Pin MOTOR2_EN3_Pin PC8 MOTOR3_NRESET_Pin 
-                           MOTOR3_EN3_Pin MOTOR3_EN2_Pin */
-  GPIO_InitStruct.Pin = CURR_MON_5V_Pin|MOTOR2_EN3_Pin|GPIO_PIN_8|MOTOR3_NRESET_Pin 
-                          |MOTOR3_EN3_Pin|MOTOR3_EN2_Pin;
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, MOTOR1_EN1_Pin|MOTOR1_EN2_Pin|MOTOR1_EN3_Pin|MOTOR2_EN2_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOC, MOTOR2_EN3_Pin|MOTOR3_EN3_Pin|MOTOR3_EN2_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(MOTOR3_EN1_GPIO_Port, MOTOR3_EN1_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pins : PC13 PC3 PC8 PC9 
+                           PC12 */
+  GPIO_InitStruct.Pin = GPIO_PIN_13|GPIO_PIN_3|GPIO_PIN_8|GPIO_PIN_9 
+                          |GPIO_PIN_12;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : CURR_MON_12V_Pin MOTOR2_EN1_Pin PA8 */
-  GPIO_InitStruct.Pin = CURR_MON_12V_Pin|MOTOR2_EN1_Pin|GPIO_PIN_8;
+  /*Configure GPIO pins : PA1 PA5 PA8 */
+  GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_5|GPIO_PIN_8;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PA5 */
-  GPIO_InitStruct.Pin = GPIO_PIN_5;
+  /*Configure GPIO pin : MOTOR2_EN1_Pin */
+  GPIO_InitStruct.Pin = MOTOR2_EN1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+  HAL_GPIO_Init(MOTOR2_EN1_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : MOTOR1_EN1_Pin PB2 MOTOR2_NRESET_Pin MOTOR1_EN3_Pin 
-                           MOTOR1_NRESET_Pin PB15 MOTOR2_NFAULT_Pin MOTOR1_NRESETB5_Pin 
-                           MOTOR2_EN2_Pin MOTOR3_NFAULT_Pin */
-  GPIO_InitStruct.Pin = MOTOR1_EN1_Pin|GPIO_PIN_2|MOTOR2_NRESET_Pin|MOTOR1_EN3_Pin 
-                          |MOTOR1_NRESET_Pin|GPIO_PIN_15|MOTOR2_NFAULT_Pin|MOTOR1_NRESETB5_Pin 
-                          |MOTOR2_EN2_Pin|MOTOR3_NFAULT_Pin;
+  /*Configure GPIO pins : MOTOR1_EN1_Pin MOTOR1_EN2_Pin MOTOR1_EN3_Pin MOTOR2_EN2_Pin */
+  GPIO_InitStruct.Pin = MOTOR1_EN1_Pin|MOTOR1_EN2_Pin|MOTOR1_EN3_Pin|MOTOR2_EN2_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PB2 PB10 PB13 PB15 
+                           PB4 PB5 PB9 */
+  GPIO_InitStruct.Pin = GPIO_PIN_2|GPIO_PIN_10|GPIO_PIN_13|GPIO_PIN_15 
+                          |GPIO_PIN_4|GPIO_PIN_5|GPIO_PIN_9;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : AXIS_IMU_INT_Pin */
-  GPIO_InitStruct.Pin = AXIS_IMU_INT_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  /*Configure GPIO pins : MOTOR2_EN3_Pin MOTOR3_EN3_Pin MOTOR3_EN2_Pin */
+  GPIO_InitStruct.Pin = MOTOR2_EN3_Pin|MOTOR3_EN3_Pin|MOTOR3_EN2_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(AXIS_IMU_INT_GPIO_Port, &GPIO_InitStruct);
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pin : MOTOR3_EN1_Pin */
   GPIO_InitStruct.Pin = MOTOR3_EN1_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(MOTOR3_EN1_GPIO_Port, &GPIO_InitStruct);
 
-  /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 5, 0);
-  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
+  /**/
+  HAL_I2CEx_EnableFastModePlus(SYSCFG_CFGR1_I2C_PB6_FMP);
 
 }
 
