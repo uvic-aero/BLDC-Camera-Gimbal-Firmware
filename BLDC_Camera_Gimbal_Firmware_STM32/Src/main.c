@@ -88,23 +88,6 @@ void StartDefaultTask(void const * argument);
 
 /* USER CODE BEGIN PFP */
 
-
-void vImuIRQHandler (void* pvParameters)
-{
-	// initialize the IMU, this needs to go here to prevent the fifo from starting interrupts
-	IMU_Start(&imu);
-
-	while(true)
-	{
-		// wait for IMU interrupt
-		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-		IMU_GetQuaternion(&imu);
-		IMU_CalcEulerAngles(&imu);
-		printf("%d, %d, %d\n", (int)(imu.pos.pitch), (int)(imu.pos.yaw), (int)(imu.pos.roll));
-	}
-
-}
-
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -177,7 +160,7 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
-  xTaskCreate(vImuIRQHandler,"IMUHandler",configMINIMAL_STACK_SIZE,NULL,3, &xImuIRQHandlerTask);
+
   /* USER CODE END RTOS_THREADS */
 
   /* Start scheduler */
@@ -873,16 +856,7 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
-{
-	if (GPIO_Pin == AXIS_IMU_INT_Pin)
-	{
-		HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-		vTaskNotifyGiveFromISR( xImuIRQHandlerTask, &xHigherPriorityTaskWoken );
-		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-	}
-}
+
 /* USER CODE END 4 */
 
 /* USER CODE BEGIN Header_StartDefaultTask */
