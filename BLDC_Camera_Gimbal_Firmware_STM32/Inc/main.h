@@ -158,6 +158,25 @@ void Error_Handler(void);
 // ENCODER GLOBAL CONFIGS
 #define ENCODER_I2C_CHANNEL		hi2c1
 
+// CONTROL LOOP GLOBAL CONFIGS
+#define ENABLED(__mode__)		((__mode__) == 1)
+#define DISABLED(__mode__)		((__mode__) == 0)
+
+#define MODE_2AXIS				(1)
+#define MODE_3AXIS				(0)
+
+#if MODE_2AXIS == MODE_3AXIS
+#error Gimbal cannot be in both 3-axis mode and 2-axis mode simultaneously; choose ONE!
+#endif
+
+// if in MODE_2AXIS, which 2 axes are being used?
+#if ENABLED(MODE_2AXIS)
+#define MODE_2AXIS_PITCH_ROLL		(1)
+#define MODE_2AXIS_PITCH_YAW		(0)
+#define MODE_2AXIS_YAW_ROLL			(0)
+#endif
+
+
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

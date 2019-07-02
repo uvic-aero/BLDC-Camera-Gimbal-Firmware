@@ -34,6 +34,7 @@
 #include "task.h"
 #include "queue.h"
 #include "FreeRTOSConfig.h"
+#include "gimbal.h"
 #include "encoder.h"
 #include "imu.h"
 #include "motor.h"
@@ -70,8 +71,7 @@ UART_HandleTypeDef huart2;
 
 osThreadId defaultTaskHandle;
 /* USER CODE BEGIN PV */
-IMU_t imu;
-TaskHandle_t xImuIRQHandlerTask;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -136,7 +136,7 @@ int main(void)
   MX_TIM15_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
-  IMU_Init(&imu, AXIS_IMU);
+
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -162,6 +162,7 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
+  Gimbal_Init();
 
   /* USER CODE END RTOS_THREADS */
 

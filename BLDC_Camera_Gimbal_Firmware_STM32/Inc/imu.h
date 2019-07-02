@@ -9,6 +9,7 @@
 #define IMU_H_
 
 #include "main.h"
+#include "angles.h"
 
 typedef enum IMU_Identity_t
 {
