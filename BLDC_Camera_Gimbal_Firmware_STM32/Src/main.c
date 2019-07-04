@@ -92,43 +92,6 @@ void StartDefaultTask(void const * argument);
 
 /* USER CODE BEGIN PFP */
 
-void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
-{
-	// RC PITCH INPUT IRQ
-	if (htim->Instance == TIM15 && htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1)
-	{
-		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-		vTaskNotifyGiveFromISR( xRcInputHandlerTask, &xHigherPriorityTaskWoken );
-		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-	}
-}
-
-void vRcInputHandler (void* pvParameters)
-{
-	// initialize the IMU, this needs to go here to prevent the fifo from starting interrupts
-
-	uint32_t period_ticks = 0;
-	uint32_t pulse_ticks = 0;
-	uint32_t duty_cycle = 0;
-
-	while(true)
-	{
-		// wait for IMU interrupt
-		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-
-		// period and pulse in timer ticks
-		period_ticks = HAL_TIM_ReadCapturedValue(&htim15, TIM_CHANNEL_2);
-		pulse_ticks = HAL_TIM_ReadCapturedValue(&htim15, TIM_CHANNEL_1);
-
-		if (period_ticks != 0)
-			duty_cycle = (pulse_ticks * 100) / period_ticks;
-		else
-			duty_cycle = 0;
-
-		printf("period ticks: %d; pulse ticks: %d\n", period_ticks, pulse_ticks);
-	}
-
-}
 
 /* USER CODE END PFP */
 
@@ -202,7 +165,7 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
-  xTaskCreate(vRcInputHandler,"RcPitch",configMINIMAL_STACK_SIZE,NULL,3, &xRcInputHandlerTask);
+  //xTaskCreate(vRcInputHandler,"RcPitch",configMINIMAL_STACK_SIZE,NULL,3, &xRcInputHandlerTask);
   /* USER CODE END RTOS_THREADS */
 
   /* Start scheduler */
@@ -388,9 +351,9 @@ static void MX_TIM1_Init(void)
 
   /* USER CODE END TIM1_Init 1 */
   htim1.Instance = TIM1;
-  htim1.Init.Prescaler = 8;
+  htim1.Init.Prescaler = 72;
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1.Init.Period = 256;
+  htim1.Init.Period = 14285;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
   htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -478,7 +441,7 @@ static void MX_TIM2_Init(void)
   htim2.Instance = TIM2;
   htim2.Init.Prescaler = 72;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 0;
+  htim2.Init.Period = 0xffff;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
@@ -684,9 +647,9 @@ static void MX_TIM8_Init(void)
 
   /* USER CODE END TIM8_Init 1 */
   htim8.Instance = TIM8;
-  htim8.Init.Prescaler = 0;
+  htim8.Init.Prescaler = 72;
   htim8.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim8.Init.Period = 0;
+  htim8.Init.Period = 0xffff;
   htim8.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim8.Init.RepetitionCounter = 0;
   htim8.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;

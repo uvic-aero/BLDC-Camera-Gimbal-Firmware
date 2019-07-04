@@ -61,4 +61,68 @@ void RC_Update(RC_InputHandle_t rc)
 	rc->pulse_width_us 	= HAL_TIM_ReadCapturedValue(rc->timer, TIM_CHANNEL_2);
 }
 
+/*
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
+{
+	// RC PITCH
+	if ((htim->Instance == TIM2)  && (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1))
+	{
+
+	}
+
+	// RC YAW
+	if ((htim->Instance == TIM8)  && (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1))
+	{
+
+	}
+
+	// RC MODE IRQ
+	if ((htim->Instance == TIM15) && (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1))
+	{
+		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+		vTaskNotifyGiveFromISR( xRcInputHandlerTask, &xHigherPriorityTaskWoken );
+		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+	}
+}
+
+void vRcInputHandler (void* pvParameters)
+{
+	// initialize the IMU, this needs to go here to prevent the fifo from starting interrupts
+
+	uint32_t period_ticks = 0;
+	uint32_t pulse_ticks = 0;
+	uint32_t duty_cycle = 0;
+
+	int counter = 0;
+
+	// start interrupts
+	HAL_TIM_IC_Start_IT(&htim15, TIM_CHANNEL_1);
+	HAL_TIM_IC_Start_IT(&htim15, TIM_CHANNEL_2);
+
+	// testing!
+	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 7000);
+	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+
+	while(true)
+	{
+		// wait for IMU interrupt
+		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+		// period and pulse in timer ticks
+		period_ticks = HAL_TIM_ReadCapturedValue(&htim15, TIM_CHANNEL_1);
+		pulse_ticks = HAL_TIM_ReadCapturedValue(&htim15, TIM_CHANNEL_2);
+
+		if (period_ticks != 0)
+			duty_cycle = (pulse_ticks * 100) / period_ticks;
+		else
+			duty_cycle = 0;
+
+		if (counter == 0)
+			printf("period ticks: %d; pulse ticks: %d\n", period_ticks, pulse_ticks);
+
+		counter = (counter + 1) % 70;
+	}
+
+}*/
+
 
