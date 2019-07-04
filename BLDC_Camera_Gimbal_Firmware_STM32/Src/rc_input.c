@@ -62,28 +62,6 @@ void RC_Update(RC_InputHandle_t rc)
 }
 
 /*
-void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
-{
-	// RC PITCH
-	if ((htim->Instance == TIM2)  && (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1))
-	{
-
-	}
-
-	// RC YAW
-	if ((htim->Instance == TIM8)  && (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1))
-	{
-
-	}
-
-	// RC MODE IRQ
-	if ((htim->Instance == TIM15) && (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1))
-	{
-		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-		vTaskNotifyGiveFromISR( xRcInputHandlerTask, &xHigherPriorityTaskWoken );
-		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-	}
-}
 
 void vRcInputHandler (void* pvParameters)
 {

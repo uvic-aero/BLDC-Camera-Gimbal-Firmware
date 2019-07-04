@@ -38,13 +38,6 @@ extern "C" {
 /* Exported types ------------------------------------------------------------*/
 /* USER CODE BEGIN ET */
 
-typedef struct EulerAngles_t
-{
-	float pitch;
-	float yaw;
-	float roll;
-} EulerAngles_t;
-
 /* USER CODE END ET */
 
 /* Exported constants --------------------------------------------------------*/
