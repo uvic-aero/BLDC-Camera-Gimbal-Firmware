@@ -5,9 +5,8 @@
  *      Author: cbest
  */
 
-#include "Comms.h"
 #include "cmsis_os.h"
-
+#include "Comms.h"
 
 extern UART_HandleTypeDef huart2;
 extern DMA_HandleTypeDef hdma_usart2_rx;
@@ -20,29 +19,132 @@ extern uint8_t UART_Buffer[UART_BUFFER_SIZE];
 
 #define ARRAY_LEN(x)	(sizeof(x) / sizeof((x)[0]))
 
-uint8_t uart_ptr_pos;
+uint8_t uart_index_pos;
 size_t old_pos;
 
 size_t length, toCopy, Write;
 uint8_t* ptr;
 
-// Prepares sends off package
+bool new_dataStream_available = false;
+
+bool __COMMS_IsValidDataStream(void)
+{
+	// check that the first element is a start byte
+	if (UART_Buffer[0] != COMMS_START)
+		return false;
+
+	uint8_t count = 1;
+	while(count < UART_BUFFER_SIZE)
+	{
+		if (UART_Buffer[count++] == COMMS_STOP)
+			return true;
+	}
+
+	return false;
+}
+
+uint8_t __COMMS_GetPayloadLength(void)
+{
+	return uart_index_pos + 1;
+}
+
+bool DecodePayload(COMMS_PayloadHandle payload)
+{
+	// if there is no new data to process or the data to process is bad, then return false
+	if (!new_dataStream_available || !__COMMS_IsValidDataStream())
+	{
+		memset(UART_Buffer, 0, UART_BUFFER_SIZE);	// clear the array
+		uart_index_pos = 0;							// reset the ptr value;
+		return false;
+	}
+
+//	payload = (COMMS_PayloadHandle)malloc(sizeof (*payload));
+	 // for testing
+	// 0xAA 0x0B 0x02 0x01 0x50 0x35 0x6E 0x3E 0xAB 0x00 0xFF 0xAB 0x00 0xAA 0x33 0x82 0xDB
+
+	// sys time => 0x50356e3e
+
+	//AA 0B 02 01 50 35 6E 3E   AB 00 FF AB 00 AA 33 69 DB
+
+
+	// 0xAA 0x0B 0x05 0x01 0x50 0x35 0x6E 0x3E 0xAB 0x00 0xFF 0xAB 0x00 0xAA 0x33 0x82 0x66 0x77 0x88 0xDB
+
+	// get size of Data Messages (in bytes)
+	uint8_t size_data_messages = UART_Buffer[1]; // includes 5 bytes of sys time (1 byte header + 4 bytes value)
+	uint8_t size_event_messages = UART_Buffer[2];
+//	uint8_t sys_time = (UART_Buffer[3] == COMMS_SysTime) ? UART_Buffer[3] : 0; // TODO: Implement better error handling
+
+	// *********** extract the values from the payload **********
+
+	payload->start = UART_Buffer[0];
+	payload->size_data = UART_Buffer[1];
+	payload->size_events = UART_Buffer[2];
+
+	// extract the System Time
+	uint8_t* ptr = &UART_Buffer[3]; // points to first element of Sys time message struct
+	payload->sys_time.type = *(ptr++);
+	payload->sys_time.value = *(ptr++) << 24 | *(ptr++) << 16 | *(ptr++) << 8 | *(ptr++);
+
+	// extract Data Messages
+
+	// divide by 3 to normalize size for the struct
+	uint8_t data_messages_bytes_count = size_data_messages - sizeof(COMMS_Time_Message);
+	uint8_t data_messages_count = data_messages_bytes_count / sizeof(COMMS_Data_Message);
+
+	// took 2 weeks to realize that malloc wasnt working. (thought snytax was wrong) (S#!^@&#*@&!!)
+	COMMS_Data_Message* data_mssg_ptr = pvPortMalloc(data_messages_count * sizeof(*data_mssg_ptr));
+//	vPortFree(payload->messages); // cannot use this in heap_1 (https://freertos.org/a00111.html#heap_1)
+	payload->messages = data_mssg_ptr;
+	size_t size = data_messages_count * sizeof(COMMS_Data_Message);
+
+	if (data_mssg_ptr == NULL)
+		return false;
+
+	uint8_t data_count = 0;
+
+	// fill memory with data messages
+	while (data_count < data_messages_count) // remove the sys time message
+	{
+		COMMS_Header type = *(ptr++);
+		uint16_t value = *(ptr++) << 8 | *(ptr++);
+		data_mssg_ptr[data_count].type = type;
+		data_mssg_ptr[data_count].value = value;
+		data_count++;
+	}
+
+	// Extract event message
+	COMMS_Header* evt_mssg_ptr = pvPortMalloc(sizeof(COMMS_Header) * size_event_messages);
+//	vPortFree(payload->events);  // cannot use this in heap_1 (https://freertos.org/a00111.html#heap_1)
+	payload->events = evt_mssg_ptr;
+	uint8_t event_mssgs_count = 0;
+
+	// fill allocated memory with event messages
+	while (event_mssgs_count < size_event_messages)
+	{
+		evt_mssg_ptr[event_mssgs_count] = *((COMMS_Header*)ptr);
+		ptr += sizeof(COMMS_Header);
+		event_mssgs_count++;
+	}
+
+	payload->stop = *ptr; // get stop byte
+
+	new_dataStream_available = false;	// let system know that there is not new data stream
+
+	return true;
+}
+
+// Wraps params in payload ans sends off via UART
 bool SendData(COMMS_Data_Message messages[], uint8_t mssg_size, COMMS_Header events[], uint8_t evt_size)
 {
-	const uint8_t start = 0b10101010;
-	const uint8_t stop = 0b11011011;
+	const uint8_t start = COMMS_START;
+	const uint8_t stop = COMMS_STOP;
 
-	// ******** SIZE OF DATA (INCUDING HEADERS)  ********
-	uint8_t time_mssg_size_h = sizeof(uint32_t) + sizeof(COMMS_Header);
-	uint8_t data_message_size_h = (sizeof(messages[0].type) + sizeof(messages[0].value)) * mssg_size;
+	// ******** SIZE OF DATA (INCUDING HEADERS) in bytes ********
+	uint8_t time_mssg_size_h = sizeof(COMMS_Time_Message);
+	uint8_t data_message_size_h = sizeof(COMMS_Data_Message) * mssg_size;
 	uint8_t total_messages_size_h = data_message_size_h + time_mssg_size_h;
 
 	uint8_t events_size = (events != NULL) ? sizeof(events[0]) * evt_size : 0;
-
-	// ******** SIZE OF DATA (EXCLUDING HEADERS)  ********
-//	uint8_t time_mssg_size = sizeof(uint32_t);
-//	uint8_t data_message_size = sizeof(messages[0].value) * mssg_size;
-//	uint8_t total_messages_size = time_mssg_size + data_message_size;
 
 	COMMS_Payload payload = {
 			.start = start,
@@ -60,12 +162,7 @@ bool SendData(COMMS_Data_Message messages[], uint8_t mssg_size, COMMS_Header eve
 
 	EncodePayload(payload_handle, mssg_size, evt_size, byteStream);
 
-//	printf("Size of Struct is: %d, and it should be ??", sizeof(payload));
-
-	// from Main()
 	HAL_StatusTypeDef result_tx = HAL_UART_Transmit(&huart2, byteStream, payload_size, 1000);
-	uint8_t rx_buffer[payload_size];
-//	memset(rx_buffer, 0, payload_size);
 
 	return true;
 }
@@ -111,95 +208,37 @@ char* EncodePayload(COMMS_PayloadHandle packet, uint8_t mssg_size, uint8_t evt_s
 }
 
 
-void COMMS_USART2_IrqHandler(UART_HandleTypeDef *huart, DMA_HandleTypeDef *hdma)
-{
-	// if the UART idle flag is set, manually disable the dma to trigger a DMA Transfer complete interrupt
-	if (huart->Instance->ISR & UART_FLAG_IDLE)
-	{
-		volatile uint32_t tmp; // discard
-		tmp = huart->Instance->ISR;
-		tmp = huart->Instance->RDR;
-		__HAL_DMA_DISABLE(hdma); // disable DMA to force transfer complete interrupt 
-		
-		// call the DMA irq handler
-		COMMS_DMA_IrqHandler(hdma, huart);
-	}
-	else
-	{
-		HAL_UART_IRQHandler(huart);
-	}
-}
 
-void COMMS_DMA_IrqHandler(DMA_HandleTypeDef *hdma, UART_HandleTypeDef *huart)
-{
-	DMA_TypeDef* baseAddr = hdma->DmaBaseAddress; // get access to the DMA registers
+// ************************ Code for checking DMA RX buffer for new data and copying the value to the UART buffer for processing  ************
 
-	if (__HAL_DMA_GET_IT_SOURCE(hdma, DMA_IT_TC) != RESET) // if the interrupt is Transfer complete
-	{
-		// clear the transfer complete flag
-		__HAL_DMA_CLEAR_FLAG(hdma, __HAL_DMA_GET_TC_FLAG_INDEX(hdma));
-
-		// get the length of the data
-		length = DMA_RX_BUFFER_SIZE - hdma->Instance->CNDTR;
-
-		/* Get number of bytes we can copy to the end of buffer */
-		toCopy = UART_BUFFER_SIZE - Write;
-
-		// check how many bytes to copy
-		if (toCopy > length)
-			toCopy = length;
-
-		// check how many bytes to copy
-		ptr = DMA_RX_Buffer;
-		memcpy(&UART_Buffer[Write], ptr, toCopy); // copy first part
-
-		Write += toCopy;
-		length -= toCopy;
-		ptr += toCopy;
-
-		if (length)
-		{
-			memcpy(&UART_Buffer[0], ptr, length);
-			Write = length;
-		}
-
-		/* Prepare DMA for next transfer */
-        /* Important! DMA stream won't start if all flags are not cleared first */
-
-		baseAddr->IFCR = 0x3FU << hdma->ChannelIndex; 		// Clear all interrupts
-		hdma->Instance->CMAR = (uint32_t)DMA_RX_Buffer; 	// set memory address for DMA again
-		hdma->Instance->CNDTR = DMA_RX_BUFFER_SIZE; 		// Set number of bytes to receive;
-		hdma->Instance->CCR |= DMA_CCR_EN;					// Start DMA transfer
-	}
-}
-
-// move data from DMA buffer to another array so we can process it later
-void __COMMS_Process_Data(const void* data, size_t len)
+// Purpose
+// 		Copies data of size (len) from staring point of a given buffer/array to the global UART buffer
+void __COMMS_ProcessData(const void* data, size_t len)
 {
 	// TODO: Add a flag (global var) to indicate when receiving new data, so i can only add data starting from the beginning of UART_Buffer
-	// meaning i'll reset the uart_ptr_pos value to 0
+	// meaning i'll reset the uart_index_pos value to 0
 	// can be based of when i've read the stop byte in the transmission protocol
 	const uint8_t* d = data;
-//	memcpy(&UART_Buffer[uart_ptr_pos], d, len); // copy the newly received data into the UART array
 	while (len--)
 	{
-		if (uart_ptr_pos >= ARRAY_LEN(UART_Buffer))
+		if (uart_index_pos >= ARRAY_LEN(UART_Buffer))
 		{
-			uart_ptr_pos = 0;
+			uart_index_pos = 0;
 		}
 
-		UART_Buffer[uart_ptr_pos++] = *d;
+		UART_Buffer[uart_index_pos++] = *d;
 		d++;
 	}
 }
 
-
-// possible make this a task and have a hard deadline for this
-// can have this run every 1ms or something like that
+// Purpose
+// 		Check if New data has been received from DMA transfer
+// Notes:
+// 		possibly make this a task and have a hard deadline for this
+// 		can have this run every 1ms or something like that
 void COMMS_RX_Check(void)
 {
 //	__HAL_UART_ENABLE_IT (&huart2, UART_IT_IDLE);		// Enable idle line interrupt
-//	static size_t old_pos;
 
 	// calculate current position in buffer
 	// (the total buffer size - the remaining data to transfer) = current pos in buffer
@@ -209,19 +248,21 @@ void COMMS_RX_Check(void)
 		if (curr_pos > old_pos)		// current position is past the prev
 		{
 			// we are in "linear" mode (all the data we need is contiguous in buffer)
-			__COMMS_Process_Data(&DMA_RX_Buffer[old_pos], curr_pos - old_pos);
+			__COMMS_ProcessData(&DMA_RX_Buffer[old_pos], curr_pos - old_pos);
 		}
 		else
 		{
 			// we are in "overflow mode" (the data received from UART has wrapped around the buffer)
 			// First process data up to the end of the buffer
-			__COMMS_Process_Data(&DMA_RX_Buffer[old_pos], ARRAY_LEN(DMA_RX_Buffer) - old_pos);
+			__COMMS_ProcessData(&DMA_RX_Buffer[old_pos], ARRAY_LEN(DMA_RX_Buffer) - old_pos);
 			if (curr_pos > 0)
 			{
 				// then process the data from beginning to the last data point
-				__COMMS_Process_Data(&DMA_RX_Buffer[0], curr_pos);
+				__COMMS_ProcessData(&DMA_RX_Buffer[0], curr_pos);
 			}
 		}
+
+		new_dataStream_available = true;	// global variable that indicates that new data is available for use
 	}
 
 	old_pos = curr_pos;	// save the current position as old

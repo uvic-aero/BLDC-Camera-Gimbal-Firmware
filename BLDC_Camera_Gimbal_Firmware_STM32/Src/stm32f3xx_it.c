@@ -44,7 +44,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
-extern uint8_t uart_ptr_pos;
+extern uint8_t uart_index_pos;
 extern size_t old_pos;
 /* USER CODE END PV */
 
@@ -181,7 +181,6 @@ void DMA1_Channel6_IRQHandler(void)
   if (__HAL_DMA_GET_IT_SOURCE(&hdma_usart2_rx, DMA_IT_TC))
   {
 	  __HAL_DMA_CLEAR_FLAG(&hdma_usart2_rx, DMA_FLAG_TC1);	// clear the interrupt flag
-//	  __HAL_DMA_DISABLE_IT(&hdma_usart2_rx, DMA_IT_TC);		// clear the interrupt flag
 	  COMMS_RX_Check();										// check for data to process
   }
 

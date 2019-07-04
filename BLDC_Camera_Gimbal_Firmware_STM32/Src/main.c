@@ -26,6 +26,7 @@
 /* USER CODE BEGIN Includes */
 // Standard Includes
 #include <stdio.h>
+//#include <stdlib.h>
 
 // Custom Includes
 // nothing here yet
@@ -99,11 +100,20 @@ void vTest (void* pvparams){
 	}
 }
 
+void vUART_Receive_Test(void* params)
+{
+	COMMS_Payload payload;
+	while(1)
+	{
+		DecodePayload(&payload);
+		vTaskDelay(1000);
+	}
+}
+
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
   puts("from HAL_UART_RxCpltCallback");
   HAL_UART_Transmit(&huart2, DMA_RX_Buffer, DMA_RX_BUFFER_SIZE, 10000);
-//  memset(DMA_RX_Buffer, 0, DMA_RX_BUFFER_SIZE);
 }
 
 void HAL_UART_RxHalfCpltCallback(UART_HandleTypeDef *huart)
@@ -205,6 +215,7 @@ int main(void)
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   xTaskCreate(vTest,"testfunc",configMINIMAL_STACK_SIZE,NULL,2,NULL);
+  xTaskCreate(vUART_Receive_Test, "UART_Rx_Test", configMINIMAL_STACK_SIZE, NULL, 3, NULL);
   /* USER CODE END RTOS_THREADS */
 
   /* Start scheduler */
