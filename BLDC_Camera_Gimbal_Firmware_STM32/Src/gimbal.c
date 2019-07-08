@@ -74,7 +74,7 @@ void Gimbal_Init(void)
 /// Init the peripheral sensor modules
 void Gimbal_InitSensors(void)
 {
-	IMU_Init(&imu, AXIS_IMU);
+	//IMU_Init(&imu, AXIS_IMU);
 
 	RC_Init(&rcPitch, RC_INPUT_PITCH);
 	RC_Init(&rcYaw, RC_INPUT_YAW);
@@ -83,6 +83,12 @@ void Gimbal_InitSensors(void)
 	// TESTING: TODO remove ///////////////////////////////////////
 	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 7000);
 	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+
+	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 7000);
+	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
+
+	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 7000);
+	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
 	///////////////////////////////////////////////////////////////
 	/// others... including any calibration required
 }
@@ -104,12 +110,12 @@ void Gimbal_InitQueues(void)
 /// Init the tasks
 void Gimbal_InitTasks(void)
 {
-	xTaskCreate(vImuIRQHandler,"IMUHandler",configMINIMAL_STACK_SIZE, NULL, PRIO_IMU, &xTaskIMU);
-	xTaskCreate(vRcPitchHandler, "RcRoll", configMINIMAL_STACK_SIZE, NULL, PRIO_RC, &xTaskRcMode);
+	//xTaskCreate(vImuIRQHandler,"IMUHandler",configMINIMAL_STACK_SIZE, NULL, PRIO_IMU, &xTaskIMU);
+	xTaskCreate(vRcModeHandler, "RcMode", configMINIMAL_STACK_SIZE, NULL, PRIO_RC, &xTaskRcMode);
 	xTaskCreate(vRcPitchHandler, "RcPitch", configMINIMAL_STACK_SIZE, NULL, PRIO_RC, &xTaskRcPitch);
-	xTaskCreate(vRcPitchHandler, "RcYaw", configMINIMAL_STACK_SIZE, NULL, PRIO_RC, &xTaskRcYaw);
-	xTaskCreate(vGimbalControlLoopTask, "CtrlLoop", configMINIMAL_STACK_SIZE, NULL, PRIO_CONTROL, &xTaskGimbalControl);
-	xTaskCreate(vTargetSettingTask, "TargetSet", configMINIMAL_STACK_SIZE, NULL, PRIO_TARGETSET, &xTaskTargetSet );
+	xTaskCreate(vRcYawHandler, "RcYaw", configMINIMAL_STACK_SIZE, NULL, PRIO_RC, &xTaskRcYaw);
+	//xTaskCreate(vGimbalControlLoopTask, "CtrlLoop", configMINIMAL_STACK_SIZE, NULL, PRIO_CONTROL, &xTaskGimbalControl);
+	//xTaskCreate(vTargetSettingTask, "TargetSet", configMINIMAL_STACK_SIZE, NULL, PRIO_TARGETSET, &xTaskTargetSet );
 	/// others...
 }
 
@@ -170,7 +176,7 @@ void vGimbalControlLoopTask(void* pvParameters)
 		// currentMotorPos.yaw = ...
 
 		targetMotorPos = Gimbal_CalcMotorTargetPos(currCameraPos, targetCameraPos, currMotorPos);
-		printf("%d\n", targetMotorPos);
+		//printf("%d\n", targetMotorPos);
 
 		// set the motor positions here // EXAMPLE!!!!! Not necessarily how it will look!
 		// the PID loops are in here... maybe? maybe we should break them out and just expose motor duty cycle directly?
