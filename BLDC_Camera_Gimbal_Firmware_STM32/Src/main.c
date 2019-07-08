@@ -165,7 +165,6 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
-  Gimbal_Init();
   //xTaskCreate(vRcInputHandler,"RcPitch",configMINIMAL_STACK_SIZE,NULL,3, &xRcInputHandlerTask);
   /* USER CODE END RTOS_THREADS */
 

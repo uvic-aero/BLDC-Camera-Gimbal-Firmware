@@ -74,22 +74,11 @@ void Gimbal_Init(void)
 /// Init the peripheral sensor modules
 void Gimbal_InitSensors(void)
 {
-	//IMU_Init(&imu, AXIS_IMU);
+	IMU_Init(&imu, AXIS_IMU);
 
 	RC_Init(&rcPitch, RC_INPUT_PITCH);
 	RC_Init(&rcYaw, RC_INPUT_YAW);
 	RC_Init(&rcMode, RC_INPUT_MODE);
-
-	// TESTING: TODO remove ///////////////////////////////////////
-	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_1, 7000);
-	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
-
-	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_2, 7000);
-	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
-
-	__HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, 7000);
-	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
-	///////////////////////////////////////////////////////////////
 	/// others... including any calibration required
 }
 
@@ -110,12 +99,12 @@ void Gimbal_InitQueues(void)
 /// Init the tasks
 void Gimbal_InitTasks(void)
 {
-	//xTaskCreate(vImuIRQHandler,"IMUHandler",configMINIMAL_STACK_SIZE, NULL, PRIO_IMU, &xTaskIMU);
+	xTaskCreate(vImuIRQHandler,"IMUHandler",configMINIMAL_STACK_SIZE, NULL, PRIO_IMU, &xTaskIMU);
 	xTaskCreate(vRcModeHandler, "RcMode", configMINIMAL_STACK_SIZE, NULL, PRIO_RC, &xTaskRcMode);
 	xTaskCreate(vRcPitchHandler, "RcPitch", configMINIMAL_STACK_SIZE, NULL, PRIO_RC, &xTaskRcPitch);
 	xTaskCreate(vRcYawHandler, "RcYaw", configMINIMAL_STACK_SIZE, NULL, PRIO_RC, &xTaskRcYaw);
-	//xTaskCreate(vGimbalControlLoopTask, "CtrlLoop", configMINIMAL_STACK_SIZE, NULL, PRIO_CONTROL, &xTaskGimbalControl);
-	//xTaskCreate(vTargetSettingTask, "TargetSet", configMINIMAL_STACK_SIZE, NULL, PRIO_TARGETSET, &xTaskTargetSet );
+	xTaskCreate(vGimbalControlLoopTask, "CtrlLoop", configMINIMAL_STACK_SIZE, NULL, PRIO_CONTROL, &xTaskGimbalControl);
+	xTaskCreate(vTargetSettingTask, "TargetSet", configMINIMAL_STACK_SIZE, NULL, PRIO_TARGETSET, &xTaskTargetSet );
 	/// others...
 }
 
@@ -201,7 +190,6 @@ void vTargetSettingTask(void* pvParameters)
 /// RC Pitch input task
 void vRcPitchHandler(void* pvParameters)
 {
-	int counter = 0; // TODO: remove
 
 	RC_StartInterrupts(&rcPitch);
 
@@ -211,20 +199,12 @@ void vRcPitchHandler(void* pvParameters)
 		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
 		RC_Update(&rcPitch);
-
-		// TESTING ///////////////////////////////////////////////////////////////////
-		if (counter == 0)
-			printf("Pitch: %d\n", rcPitch.pulse_width_us);
-
-		counter = (counter + 1) % 70;
-		//////////////////////////////////////////////////////////////////////////////
 	}
 }
 
 /// RC yaw input task
 void vRcYawHandler(void* pvParameters)
 {
-	int counter = 0; // TODO: remove
 
 	RC_StartInterrupts(&rcYaw);
 
@@ -234,20 +214,12 @@ void vRcYawHandler(void* pvParameters)
 		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
 		RC_Update(&rcYaw);
-
-		// TESTING ///////////////////////////////////////////////////////////////////
-		if (counter == 0)
-			printf("Yaw: %d\n", rcYaw.pulse_width_us);
-
-		counter = (counter + 1) % 70;
-		//////////////////////////////////////////////////////////////////////////////
 	}
 }
 
 /// RC mode input task
 void vRcModeHandler(void* pvParameters)
 {
-	int counter = 0; // TODO: remove
 
 	RC_StartInterrupts(&rcMode);
 
@@ -257,13 +229,6 @@ void vRcModeHandler(void* pvParameters)
 		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
 		RC_Update(&rcMode);
-
-		// TESTING ///////////////////////////////////////////////////////////////////
-		if (counter == 0)
-			printf("Mode: %d\n", rcMode.pulse_width_us);
-
-		counter = (counter + 1) % 70;
-		//////////////////////////////////////////////////////////////////////////////
 	}
 }
 
