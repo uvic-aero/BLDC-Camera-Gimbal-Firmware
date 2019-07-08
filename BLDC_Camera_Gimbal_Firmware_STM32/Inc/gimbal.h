@@ -47,6 +47,15 @@ void vGimbalControlLoopTask(void* pvParameters);
 
 /// Target setting task
 void vTargetSettingTask(void* pvParameters);
+
+/// RC Pitch input task
+void vRcPitchHandler(void* pvParameters);
+
+/// RC yaw input task
+void vRcYawHandler(void* pvParameters);
+
+/// RC mode input task
+void vRcModeHandler(void* pvParameters);
 /// others...
 
 /* ============= HAL IRQ HANDLER CALLBACKS =============== */

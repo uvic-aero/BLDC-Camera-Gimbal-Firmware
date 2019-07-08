@@ -18,6 +18,7 @@
 
 ///  Module Headers ///
 #include "imu.h"
+#include "rc_input.h"
 /// others...
 
 /*====================== DEFINES ========================= */
@@ -27,6 +28,7 @@
 #define PRIO_CONTROL				((UBaseType_t)9)
 #define PRIO_TARGETSET				((UBaseType_t)9)
 #define PRIO_UARTRX					((UBaseType_t)7)
+#define PRIO_RC						((UBaseType_t)6)
 
 #define QSIZE_IMU					(1)
 #define QSIZE_TARGET				(1)
@@ -34,6 +36,10 @@
 /* ============= GLOBAL RESOURCE VARIABLES =============== */
 
 static volatile IMU_t imu;
+static RC_Input_t rcPitch;
+static RC_Input_t rcYaw;
+static RC_Input_t rcMode;
+
 
 /* ============== SYNCHRONIZATION OBJECTS ================ */
 
@@ -47,6 +53,9 @@ TaskHandle_t xTaskIMU;
 TaskHandle_t xTaskUartRx;
 TaskHandle_t xTaskGimbalControl;
 TaskHandle_t xTaskTargetSet;
+TaskHandle_t xTaskRcPitch;
+TaskHandle_t xTaskRcYaw;
+TaskHandle_t xTaskRcMode;
 
 /* ================== INIT FUNCTIONS ===================== */
 /// Top-level Init function
@@ -63,6 +72,10 @@ void Gimbal_Init(void)
 void Gimbal_InitSensors(void)
 {
 	IMU_Init(&imu, AXIS_IMU);
+
+	RC_Init(&rcPitch, RC_INPUT_PITCH);
+	RC_Init(&rcYaw, RC_INPUT_YAW);
+	RC_Init(&rcMode, RC_INPUT_MODE);
 	/// others... including any calibration required
 }
 
@@ -84,6 +97,9 @@ void Gimbal_InitQueues(void)
 void Gimbal_InitTasks(void)
 {
 	xTaskCreate(vImuIRQHandler,"IMUHandler",configMINIMAL_STACK_SIZE, NULL, PRIO_IMU, &xTaskIMU);
+	xTaskCreate(vRcModeHandler, "RcMode", configMINIMAL_STACK_SIZE, NULL, PRIO_RC, &xTaskRcMode);
+	xTaskCreate(vRcPitchHandler, "RcPitch", configMINIMAL_STACK_SIZE, NULL, PRIO_RC, &xTaskRcPitch);
+	xTaskCreate(vRcYawHandler, "RcYaw", configMINIMAL_STACK_SIZE, NULL, PRIO_RC, &xTaskRcYaw);
 	xTaskCreate(vGimbalControlLoopTask, "CtrlLoop", configMINIMAL_STACK_SIZE, NULL, PRIO_CONTROL, &xTaskGimbalControl);
 	xTaskCreate(vTargetSettingTask, "TargetSet", configMINIMAL_STACK_SIZE, NULL, PRIO_TARGETSET, &xTaskTargetSet );
 	/// others...
@@ -146,7 +162,7 @@ void vGimbalControlLoopTask(void* pvParameters)
 		// currentMotorPos.yaw = ...
 
 		targetMotorPos = Gimbal_CalcMotorTargetPos(currCameraPos, targetCameraPos, currMotorPos);
-		printf("%d\n", targetMotorPos);
+		//printf("%d\n", targetMotorPos);
 
 		// set the motor positions here // EXAMPLE!!!!! Not necessarily how it will look!
 		// the PID loops are in here... maybe? maybe we should break them out and just expose motor duty cycle directly?
@@ -168,6 +184,51 @@ void vTargetSettingTask(void* pvParameters)
 	}
 }
 
+/// RC Pitch input task
+void vRcPitchHandler(void* pvParameters)
+{
+
+	RC_StartInterrupts(&rcPitch);
+
+	while(true)
+	{
+		// wait for IMU interrupt
+		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+		RC_Update(&rcPitch);
+	}
+}
+
+/// RC yaw input task
+void vRcYawHandler(void* pvParameters)
+{
+
+	RC_StartInterrupts(&rcYaw);
+
+	while(true)
+	{
+		// wait for IMU interrupt
+		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+		RC_Update(&rcYaw);
+	}
+}
+
+/// RC mode input task
+void vRcModeHandler(void* pvParameters)
+{
+
+	RC_StartInterrupts(&rcMode);
+
+	while(true)
+	{
+		// wait for IMU interrupt
+		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+		RC_Update(&rcMode);
+	}
+}
+
 
 
 /* ============= HAL IRQ HANDLER CALLBACKS =============== */
@@ -183,6 +244,34 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 	}
 }
+
+void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
+{
+	BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+	// RC PITCH
+	if ((htim->Instance == TIM2)  && (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1))
+	{
+		vTaskNotifyGiveFromISR( xTaskRcPitch, &xHigherPriorityTaskWoken );
+		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+	}
+
+	// RC YAW
+	if ((htim->Instance == TIM8)  && (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1))
+	{
+		vTaskNotifyGiveFromISR( xTaskRcYaw, &xHigherPriorityTaskWoken );
+		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+	}
+
+	// RC MODE IRQ
+	if ((htim->Instance == TIM15) && (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1))
+	{
+		vTaskNotifyGiveFromISR( xTaskRcMode, &xHigherPriorityTaskWoken );
+		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+	}
+}
+
+/* =============== CONTROL MATH FUNCTIONS ================ */
 
 EulerAngles_t Gimbal_CalcMotorTargetPos(EulerAngles_t currIMU, EulerAngles_t targIMU, EulerAngles_t currMotorPos)
 {
