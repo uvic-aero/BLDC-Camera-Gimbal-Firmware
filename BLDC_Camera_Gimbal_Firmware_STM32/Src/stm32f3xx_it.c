@@ -44,8 +44,7 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN PV */
-extern uint8_t uart_index_pos;
-extern size_t old_pos;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -61,11 +60,16 @@ extern void COMMS_USART2_IrqHandler(UART_HandleTypeDef *huart, DMA_HandleTypeDef
 /* USER CODE END 0 */
 
 /* External variables --------------------------------------------------------*/
+
+/* USER CODE BEGIN EV */
 extern DMA_HandleTypeDef hdma_usart2_rx;
 extern UART_HandleTypeDef huart2;
 extern TIM_HandleTypeDef htim6;
 
-/* USER CODE BEGIN EV */
+/// EXTERNAL VARIABLES (FROM Comms.h) ///
+extern TaskHandle_t xTaskSerialRx;
+extern TaskHandle_t xTaskDecodePayload;
+extern TaskHandle_t xTaskSerialTx;
 
 /* USER CODE END EV */
 
@@ -181,7 +185,9 @@ void DMA1_Channel6_IRQHandler(void)
   if (__HAL_DMA_GET_IT_SOURCE(&hdma_usart2_rx, DMA_IT_TC))
   {
 	  __HAL_DMA_CLEAR_FLAG(&hdma_usart2_rx, DMA_FLAG_TC1);	// clear the interrupt flag
-	  COMMS_RX_Check();										// check for data to process
+	  BaseType_t isYieldRequired = xTaskResumeFromISR(xTaskSerialRx);
+	  portYIELD_FROM_ISR(isYieldRequired);
+//	  COMMS_RX_Check();						// check for data to process
   }
 
   /* USER CODE END DMA1_Channel6_IRQn 1 */
@@ -203,7 +209,9 @@ void USART2_IRQHandler(void)
   if (__HAL_UART_GET_FLAG(&huart2, UART_FLAG_IDLE))
   {
 	  __HAL_UART_CLEAR_FLAG(&huart2, UART_CLEAR_IDLEF);		// clear the idle interrupt flag
-	  COMMS_RX_Check();										// check for data to process
+	  BaseType_t isYieldRequired = xTaskResumeFromISR(xTaskSerialRx);
+	  portYIELD_FROM_ISR(isYieldRequired);
+//	  COMMS_RX_Check();										// check for data to process
   }
 
   /* USER CODE END USART2_IRQn 1 */

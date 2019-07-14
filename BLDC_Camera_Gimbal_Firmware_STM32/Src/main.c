@@ -51,11 +51,12 @@
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
 
-#define DMA_RX_BUFFER_SIZE          64
-uint8_t DMA_RX_Buffer[DMA_RX_BUFFER_SIZE];
+//#define DMA_RX_BUFFER_SIZE          64
+//uint8_t DMA_RX_Buffer[DMA_RX_BUFFER_SIZE];
+//
+//#define UART_BUFFER_SIZE            20
+//uint8_t UART_Buffer[UART_BUFFER_SIZE];
 
-#define UART_BUFFER_SIZE            20
-uint8_t UART_Buffer[UART_BUFFER_SIZE];
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -105,22 +106,35 @@ void vUART_Receive_Test(void* params)
 	COMMS_Payload payload;
 	while(1)
 	{
-		DecodePayload(&payload);
+//		DecodePayload(&payload);
 		vTaskDelay(1000);
 	}
 }
 
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
-{
-  puts("from HAL_UART_RxCpltCallback");
-  HAL_UART_Transmit(&huart2, DMA_RX_Buffer, DMA_RX_BUFFER_SIZE, 10000);
-}
+// Create a Tasks for handling ISR logic
+// 	Ensure that the Task suspends itself using vTaskSuspend(NULL)
+//	This means that it needs an external event to resume it
+// Inside the relevant ISRs, add code to start the relevant Tasks (Serial Receive)
+//	BaseType_t checkIfYieldRequired = xTaskResumeFromISR(taskHandle)
+//	portYIELD_FROM_ISR(checkIfYieldRequired)
 
-void HAL_UART_RxHalfCpltCallback(UART_HandleTypeDef *huart)
-{
-	puts("from HAL_UART_RxHalfCpltCallback");
-	uint16_t rxSize = huart->RxXferSize;
-}
+// Decode the payload and place each value decoded into their own queue's (eg pitch, roll, yaw queues)
+
+
+
+
+
+//void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+//{
+//  puts("from HAL_UART_RxCpltCallback");
+//  HAL_UART_Transmit(&huart2, DMA_RX_Buffer, DMA_RX_BUFFER_SIZE, 10000);
+//}
+//
+//void HAL_UART_RxHalfCpltCallback(UART_HandleTypeDef *huart)
+//{
+//	puts("from HAL_UART_RxHalfCpltCallback");
+//	uint16_t rxSize = huart->RxXferSize;
+//}
 
 //void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
 //{
@@ -176,15 +190,18 @@ int main(void)
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 
-  HAL_UART_Receive_DMA(&huart2, DMA_RX_Buffer, DMA_RX_BUFFER_SIZE);
-
-  __HAL_DMA_DISABLE_IT(&hdma_usart2_rx, DMA_IT_HT); 	// Disable half transfer complete interrupt
-  __HAL_UART_ENABLE_IT (&huart2, UART_IT_IDLE);		// Enable idle line interrupt
+//  // Setup DMA to tranfer data from UART's internal FIFO onto DMA_RX_Buffer (global)
+//  HAL_UART_Receive_DMA(&huart2, DMA_RX_Buffer, DMA_RX_BUFFER_SIZE);
+//
+//  __HAL_DMA_DISABLE_IT(&hdma_usart2_rx, DMA_IT_HT); 	// Disable half transfer complete interrupt
+//  __HAL_UART_ENABLE_IT (&huart2, UART_IT_IDLE);		// Enable idle line interrupt
+  Comms_Init();
 
 //  COMMS_RX_Check();
   COMMS_Data_Message messages[] = { { .type = 0b10101011, .value = 0xFF }, { .type = 0b10101011, .value = 0xAA } };
   COMMS_Header events[] = { 0x33 , 0x69 };
-  SendData(messages, 2, events, 2);
+//  COMMS_SendData_Params sendDataStruct = { .messages = messages, .mssg_size = 2, .events = events, .evt_size = 2 };
+//  SendData(messages, 2, events, 2);
 
 
 

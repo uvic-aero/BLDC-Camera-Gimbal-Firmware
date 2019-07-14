@@ -1,14 +1,6 @@
 #pragma once
 #pragma pack(1)
 
-#include "main.h"
-#include <stdint.h>
-#include <string.h>
-
-extern UART_HandleTypeDef huart2;
-extern DMA_HandleTypeDef hdma_usart2_rx;
-
-
 typedef enum { false, true } bool;
 
 // ***************** Message format ***************
@@ -53,18 +45,39 @@ typedef enum Event_Messages {
 	COMMS_Switch_USB = 0b10000010,
 } COMMS_Event_Message_Type;
 
-
+//COMMS_Data_Message messages[], uint8_t mssg_size, COMMS_Header events[], uint8_t evt_size
+typedef struct SendDataStrct {
+	uint8_t mssg_size;
+	uint8_t evt_size;
+	COMMS_Header* events;
+	COMMS_Data_Message* messages;
+} COMMS_SendData_Params;
 // ***************** Struct Handles ***************
 
 typedef COMMS_Payload* COMMS_PayloadHandle;
 
 // ***************** Function prototypes  ***************
 
+bool __COMMS_IsValidDataStream(void);
+uint8_t __COMMS_GetPayloadLength(void);
+void __COMMS_ProcessData(const void* data, size_t len);
+char* __EncodePayload(COMMS_PayloadHandle packet, uint8_t mssg_size, uint8_t evt_size, uint8_t* txPackage);
+
+void Comms_Init(void);
+void Comms_InitTasks(void);
+void Comms_InitQueues(void);
+
+void vCommsRxData(void);
+void vCommsDecodePayload(void* pvParams);
+void vCommsTxData(void* pvParam);
+
+
+
 
 //// Sends data to SW
 //// returns true or false indicating if it succeeded
 bool SendData(COMMS_Data_Message messages[], uint8_t mssg_size, COMMS_Header events[], uint8_t evt_size);
-char* EncodePayload(COMMS_PayloadHandle packet, uint8_t mssg_size, uint8_t evt_size, uint8_t* txPackage);
+char* __EncodePayload(COMMS_PayloadHandle packet, uint8_t mssg_size, uint8_t evt_size, uint8_t* txPackage);
 
 // private functions
 void __COMMS_ProcessData(const void* data, size_t len);
@@ -72,11 +85,4 @@ void __COMMS_ProcessData(const void* data, size_t len);
 // public functions
 void COMMS_RX_Check(void);
 bool DecodePayload(COMMS_PayloadHandle payload);
-//COMMS_PayloadHandle DecodePayload(void);
-
-// TODO: Remove these as i dont used them
-void COMMS_DMA_IrqHandler(DMA_HandleTypeDef *hdma, UART_HandleTypeDef *huart);
-void COMMS_USART2_IrqHandler(UART_HandleTypeDef *huart, DMA_HandleTypeDef *hdma);
-
-
 
