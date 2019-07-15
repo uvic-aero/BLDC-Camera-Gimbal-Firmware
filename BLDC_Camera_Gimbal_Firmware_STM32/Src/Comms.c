@@ -37,6 +37,9 @@
 #define QSIZE_YAW					(1)
 #define QSIZE_ROLL					(1)
 
+/// Constant Types ///
+//#define Data_Message_Default		(COMMS_Data_Message defaultVal = { .type = 0, .value = 0 })
+
 // MACROS
 #define ARRAY_LEN(x)	(sizeof(x) / sizeof((x)[0]))
 
@@ -58,11 +61,20 @@ static size_t old_pos;
 static size_t length, toCopy, Write;
 static bool new_dataStream_available = false;
 
-// pointer values
+/// POINTER VARIABLES ///
 // these memory locations are freed as soon as the messages are placed in there respective queues
-// will have to switch the a different heap to free them;
+// will have to switch to a different heap to free them;
 COMMS_Header* evt_mssg_ptr;
 COMMS_Data_Message* data_mssg_ptr;
+
+/// QUEUE HANDLES ///
+QueueHandle_t xCurrentPanQueue;
+QueueHandle_t xCurrentTiltQueue;
+QueueHandle_t xTargetPanQueue;
+QueueHandle_t xTargetTiltQueue;
+
+QueueHandle_t xEventsQueue;
+
 
 /// TASK HANDLES ///
 TaskHandle_t xTaskSerialRx;
@@ -170,6 +182,27 @@ char* __EncodePayload(COMMS_PayloadHandle packet, uint8_t mssg_size, uint8_t evt
 	return txPackage;
 }
 
+COMMS_Data_Message __COMMS_DefaultDataMessage(void)
+{
+	COMMS_Data_Message defaultVal = { .type = 0, .value = 0 };
+	return defaultVal;
+}
+
+// Grabs a specified message type from the decoded payload if it exists;
+COMMS_Data_Message* __COMMS_GetMessage(COMMS_Data_Message* head, uint8_t data_messages_count, COMMS_Data_Message_Type type)
+{
+	while (data_messages_count-- != 0)
+	{
+		if (head->type == (COMMS_Header)type)
+		{
+			return head;
+		}
+		head++;
+	}
+
+	return NULL;
+}
+
 
 /// INIT FUNCTIONS ///
 
@@ -199,7 +232,20 @@ void Comms_InitTasks(void)
 
 void Comms_InitQueues(void)
 {
+	xCurrentPanQueue = xQueueCreate(1, sizeof(COMMS_Data_Message));
+	xTargetPanQueue= xQueueCreate(1, sizeof(COMMS_Data_Message));
+	xCurrentTiltQueue = xQueueCreate(1, sizeof(COMMS_Data_Message));
+	xTargetTiltQueue= xQueueCreate(1, sizeof(COMMS_Data_Message));
 
+	xEventsQueue = xQueueCreate(100, sizeof(COMMS_Header));
+
+	// These are used for debugging
+	vQueueAddToRegistry(xCurrentPanQueue, "Current_Pan");
+	vQueueAddToRegistry(xTargetPanQueue, "Target_Pan");
+	vQueueAddToRegistry(xCurrentTiltQueue, "Current_Tilt");
+	vQueueAddToRegistry(xTargetTiltQueue, "Target_Tilt");
+
+	vQueueAddToRegistry(xEventsQueue, "Event Queue");
 }
 
 
@@ -213,47 +259,54 @@ void Comms_InitQueues(void)
 // 		can have this run every 1ms or something like that
 void vCommsRxData(void)
 {
-	// calculate current position in buffer
-	// (the total buffer size - the remaining data to transfer) = current pos in buffer
-	size_t curr_pos = ARRAY_LEN(DMA_RX_Buffer) - __HAL_DMA_GET_COUNTER(&hdma_usart2_rx);
-	if (curr_pos != old_pos) // check that the pos ptr has changed
+	while(true)
 	{
-		if (curr_pos > old_pos)		// current position is past the prev
-		{
-			// we are in "linear" mode (all the data we need is contiguous in buffer)
-			__COMMS_ProcessData(&DMA_RX_Buffer[old_pos], curr_pos - old_pos);
-		}
-		else
-		{
-			// we are in "overflow mode" (the data received from UART has wrapped around the buffer)
-			// First process data up to the end of the buffer
-			__COMMS_ProcessData(&DMA_RX_Buffer[old_pos], ARRAY_LEN(DMA_RX_Buffer) - old_pos);
-			if (curr_pos > 0)
-			{
-				// then process the data from beginning to the last data point
-				__COMMS_ProcessData(&DMA_RX_Buffer[0], curr_pos);
-			}
-		}
+		vTaskSuspend(NULL); // Suspend itself
 
-		// TODO: Start the decoding Task here
-		// doesnt have to have a high priority, as we can resume decoding at any point
-		// but decoding has to be completed before new data is transfered to UART_Buffer
-		xTaskCreate(vCommsDecodePayload, "DecodePayload", configMINIMAL_STACK_SIZE, NULL, PRIO_DECODE, NULL);
+		// calculate current position in buffer
+		// (the total buffer size - the remaining data to transfer) = current pos in buffer
+		size_t curr_pos = ARRAY_LEN(DMA_RX_Buffer) - __HAL_DMA_GET_COUNTER(&hdma_usart2_rx);
+		if (curr_pos != old_pos) // check that the pos ptr has changed
+		{
+			if (curr_pos > old_pos)		// current position is past the prev
+			{
+				// we are in "linear" mode (all the data we need is contiguous in buffer)
+				__COMMS_ProcessData(&DMA_RX_Buffer[old_pos], curr_pos - old_pos);
+			}
+			else
+			{
+				// we are in "overflow mode" (the data received from UART has wrapped around the buffer)
+				// First process data up to the end of the buffer
+				__COMMS_ProcessData(&DMA_RX_Buffer[old_pos], ARRAY_LEN(DMA_RX_Buffer) - old_pos);
+				if (curr_pos > 0)
+				{
+					// then process the data from beginning to the last data point
+					__COMMS_ProcessData(&DMA_RX_Buffer[0], curr_pos);
+				}
+			}
+
+			// TODO: Start the decoding Task here
+			// doesnt have to have a high priority, as we can resume decoding at any point
+			// but decoding has to be completed before new data is transfered to UART_Buffer
+			xTaskCreate(vCommsDecodePayload, "DecodePayload", configMINIMAL_STACK_SIZE, NULL, PRIO_DECODE, NULL);
 
 //			new_dataStream_available = true;	// global variable that indicates that new data is available for use
+		}
+
+		old_pos = curr_pos;	// save the current position as old
+
+		if (old_pos == ARRAY_LEN(DMA_RX_Buffer))
+		{
+			old_pos = 0;
+		}
+
+//		vTaskDelete(NULL); // DELETE SELF
+	//	vTaskSuspend(NULL);	// Suspend Self Till triggered by ISR
+
 	}
-
-	old_pos = curr_pos;	// save the current position as old
-
-	if (old_pos == ARRAY_LEN(DMA_RX_Buffer))
-	{
-		old_pos = 0;
-	}
-
-	vTaskDelete(NULL); // DELETE SELF
-//	vTaskSuspend(NULL);	// Suspend Self Till triggered by ISR
 }
 
+// TODO: Decode the Payload and place its contents onto their respective queues
 void vCommsDecodePayload(void* pvParams)
 {
 	COMMS_PayloadHandle payload = (COMMS_PayloadHandle) pvParams;
@@ -288,7 +341,7 @@ void vCommsDecodePayload(void* pvParams)
 	size_t size = data_messages_count * sizeof(COMMS_Data_Message);
 
 	if (data_mssg_ptr == NULL)
-		return false;
+		return;
 
 	// fill memory with data messages
 	uint8_t data_count = 0;
@@ -304,7 +357,7 @@ void vCommsDecodePayload(void* pvParams)
 	// Extract event message
 	evt_mssg_ptr = pvPortMalloc(sizeof(COMMS_Header) * size_event_messages);
 	if (evt_mssg_ptr == NULL)
-		return false;
+		return;
 
 	payload->events = evt_mssg_ptr;
 
@@ -321,9 +374,38 @@ void vCommsDecodePayload(void* pvParams)
 
 	new_dataStream_available = false;	// let system know that there is no new data stream
 
+	// Place the decoded messages onto their respective queues
+	COMMS_Data_Message* targetPan = __COMMS_GetMessage(data_mssg_ptr, data_messages_count, COMMS_Target_Pan);
+	COMMS_Data_Message* targetTilt =__COMMS_GetMessage(data_mssg_ptr, data_messages_count, COMMS_Target_Tilt);
+	COMMS_Data_Message* currentPan = __COMMS_GetMessage(data_mssg_ptr, data_messages_count, COMMS_Curr_Pan);
+	COMMS_Data_Message* currentTilt = __COMMS_GetMessage(data_mssg_ptr, data_messages_count, COMMS_Curr_Tilt);
+
+	// place on queue
+	if (targetPan != NULL)
+	{
+		xQueueSendToBack(xTargetPanQueue, (void*)(targetPan), (TickType_t)0);
+	}
+
+	if (targetTilt != NULL)
+	{
+		xQueueSendToBack(xTargetTiltQueue, (void*)(targetTilt), (TickType_t)0);
+	}
+
+	if (currentPan != NULL)
+	{
+		xQueueSendToBack(xCurrentPanQueue, (void*)(currentPan), (TickType_t)0);
+	}
+
+	if (currentTilt != NULL)
+	{
+		xQueueSendToBack(xCurrentTiltQueue, (void*)(currentTilt), (TickType_t)0);
+	}
+
+
 	vTaskDelete(NULL); // DELETE SELF
 }
 
+// Created when needed and discarded after its done
 void vCommsTxData(void* pvParam)
 {
 	COMMS_SendData_Params* params = (COMMS_SendData_Params*) pvParam;
