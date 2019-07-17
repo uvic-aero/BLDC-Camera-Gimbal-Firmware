@@ -51,12 +51,6 @@
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
 
-//#define DMA_RX_BUFFER_SIZE          64
-//uint8_t DMA_RX_Buffer[DMA_RX_BUFFER_SIZE];
-//
-//#define UART_BUFFER_SIZE            20
-//uint8_t UART_Buffer[UART_BUFFER_SIZE];
-
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -110,6 +104,8 @@ void vSend_Data (void* pvparams){
 	COMMS_Data_Message messages[] = { { .type = COMMS_Curr_Tilt, .value = 0xFF }, { .type = COMMS_Curr_Pan, .value = 0xAA } };
 	COMMS_Header events[] = { 0x33 , 0x69 };
 	COMMS_Messages_t data = { .events = events, .evt_size = ARRAY_LEN(events), .messages = messages, .mssg_size = ARRAY_LEN(messages) };
+
+	/***********  Tx data Structure (For Testing)  *************/
 	// Start => 					0xAA
 	// Size of data messages => 	0x0B
 	// Size of event messages => 	0x02
@@ -136,7 +132,6 @@ void vUART_Receive_CurrentPanQueue(void* params)
 			return;
 		}
 		printf("value of current-pan are: %x", curr_pan.value);
-//		vTaskSuspend(NULL);
 	}
 }
 
@@ -150,14 +145,51 @@ void vUART_Receive_CurrentTiltQueue(void* params)
 			return;
 		}
 		printf("value of current-pan are: %x", curr_tilt.value);
-//		vTaskSuspend(NULL);
 	}
 }
+
+void vUART_Receive_TargetPanQueue(void* params)
+{
+	COMMS_Data_Message target_pan;
+	while(1)
+	{
+		if ( xQueueReceive(xTargetPanQueue, &target_pan, portMAX_DELAY) != pdPASS )
+		{
+			return;
+		}
+		printf("value of current-pan are: %x", target_pan.value);
+	}
+}
+
+void vUART_Receive_TargetTiltQueue(void* params)
+{
+	COMMS_Data_Message target_tilt;
+	while(1)
+	{
+		if ( xQueueReceive(xTargetTiltQueue, &target_tilt, portMAX_DELAY) != pdPASS )
+		{
+			return;
+		}
+		printf("value of current-pan are: %x", target_tilt.value);
+	}
+}
+
+// https://www.freertos.org/Stacks-and-stack-overflow-checking.html
+// Allows for detecting Stack overflow
+// Doing this because configCHECK_FOR_STACK_OVERFLOW is set to a non-zero value in FreeRTOSConfig.h
+//
+// FOR DEVELOPMENT ONLY
+// Proxied from freertos.c
+void vApplicationStackOverflowHook(xTaskHandle xTask, signed char *pcTaskName)
+{
+	printf("Stack overflow occurred");
+}
 /*
+ * Receives COMMS_Curr_Pan => 0x99 0xAA | COMMS_Curr_Tilt => 0x69 0x99
  * 	// Start => 					0xAA
 	// Size of data messages => 	0x0B
 	// Size of event messages => 	0x05
-	// Sys time mssg => 			(header)0x01  (value = 	Hex:0x12345678) 0x12 0x34 0x56 0x78
+	// Sys time mssg => 			(header)0x01 (value) 0x12 0x34 0x56 0x78
 	// data messages => 			(header)0x03 (value)0x69 0x99
 	//				   				(header)0x02 (value)0x99 0xAA
 	// Events 		=> 				(header)0x33 (header)0x82 (header)0x66 (header)0x81 (header)0x88
@@ -165,15 +197,19 @@ void vUART_Receive_CurrentTiltQueue(void* params)
  * 0xAA 0x0B 0x05 0x01 0x12 0x34 0x56 0x78 0x03 0x69 0x99 0x02 0x99 0xAA 0x33 0x82 0x66 0x81 0x88 0xDB
  * */
 
-// Create a Tasks for handling ISR logic
-// 	Ensure that the Task suspends itself using vTaskSuspend(NULL)
-//	This means that it needs an external event to resume it
-// Inside the relevant ISRs, add code to start the relevant Tasks (Serial Receive)
-//	BaseType_t checkIfYieldRequired = xTaskResumeFromISR(taskHandle)
-//	portYIELD_FROM_ISR(checkIfYieldRequired)
-
-// Decode the payload and place each value decoded into their own queue's (eg pitch, roll, yaw queues)
-
+/**
+ * Receives COMMS_Target_Pan => 0x55 0x44 | COMMS_Target_Tilt => 0xDC 0xCD
+ *  // Start => 					0xAA
+	// Size of data messages => 	0x0B
+	// Size of event messages => 	0x05
+	// Sys time mssg => 			(header)0x01 (value) 0x50 0x35 0x6E 0x3E
+	// data messages => 			(header)0x04 (value)0x55 0x44
+	//				   				(header)0x05 (value)0xDC 0xCD
+	// Events 		=> 				(header)0x33 (header)0x55 (header)0x66 (header)0x77 (header)0x88
+	// Stop 		=> 				0xDB
+ *
+ * 0xAA 0x0B 0x05 0x01 0x50 0x35 0x6E 0x3E 0x04 0x55 0x44 0x05 0xDC 0xCD 0x33 0x55 0x66 0x77 0x88 0xDB
+ * /
 
 /* USER CODE END PFP */
 
@@ -199,6 +235,11 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
+
+  // https://www.freertos.org/RTOS-Cortex-M3-M4.html
+  // Needed to avoid having priority clashes when switching from ISR to task
+  HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
+
 
   /* USER CODE END Init */
 
@@ -230,15 +271,6 @@ int main(void)
 //  __HAL_UART_ENABLE_IT (&huart2, UART_IT_IDLE);		// Enable idle line interrupt
   Comms_Init();
 
-//  COMMS_RX_Check();
-//  COMMS_Data_Message messages[] = { { .type = COMMS_Curr_Tilt, .value = 0xFF }, { .type = COMMS_Curr_Pan, .value = 0xAA } };
-//  COMMS_Header events[] = { 0x33 , 0x69 };
-//  COMMS_SendData_Params sendDataStruct = { .messages = messages, .mssg_size = 2, .events = events, .evt_size = 2 };
-//  SendData(messages, 2, events, 2);
-
-
-
-
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -265,8 +297,12 @@ int main(void)
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   xTaskCreate(vSend_Data,"Send_Payload", configMINIMAL_STACK_SIZE, NULL, 3, NULL);
-  xTaskCreate(vUART_Receive_CurrentPanQueue, "UART_Receive_PitchQueue", configMINIMAL_STACK_SIZE, NULL, 3, NULL);
-  xTaskCreate(vUART_Receive_CurrentTiltQueue, "vUART_Receive_CurrentTiltQueue", configMINIMAL_STACK_SIZE, NULL, 3, NULL);
+
+  xTaskCreate(vUART_Receive_CurrentPanQueue, "vUART_Receive_CurrentPanQueue", configMINIMAL_STACK_SIZE, NULL, 5, NULL);
+  xTaskCreate(vUART_Receive_CurrentTiltQueue, "vUART_Receive_CurrentTiltQueue", configMINIMAL_STACK_SIZE, NULL, 5, NULL);
+
+  xTaskCreate(vUART_Receive_TargetPanQueue, "vUART_Receive_TargetPanQueue", configMINIMAL_STACK_SIZE, NULL, 5, NULL);
+  xTaskCreate(vUART_Receive_TargetTiltQueue, "vUART_Receive_TargetTiltQueue", configMINIMAL_STACK_SIZE, NULL, 5, NULL);
   /* USER CODE END RTOS_THREADS */
 
   /* Start scheduler */

@@ -24,9 +24,9 @@
 /* ================= DEFINES  ================= */
 
 /// TASK PRIORITY LEVELS
+#define PRIO_TXDATA					((UBaseType_t)4)
 #define PRIO_RXDATA					((UBaseType_t)5)
-#define PRIO_DECODE					((UBaseType_t)5)
-#define PRIO_TXDATA					((UBaseType_t)5)
+#define PRIO_DECODE					((UBaseType_t)6)
 
 /// ARRAY SIZE CONSTANTS ///
 #define DMA_RX_BUFFER_SIZE          64
@@ -51,9 +51,9 @@ extern DMA_HandleTypeDef hdma_usart2_rx;
 
 /// MODULE LEVEL SHARED VARIABLES ///
 // Contains RAW unprocessed data received by UART and transfered by DMA
-static uint8_t DMA_RX_Buffer[DMA_RX_BUFFER_SIZE];
+static volatile uint8_t DMA_RX_Buffer[DMA_RX_BUFFER_SIZE];
 // Contains the payload data as copied over from DMA_RX_Buffer
-static uint8_t UART_Buffer[UART_BUFFER_SIZE];
+static volatile uint8_t UART_Buffer[UART_BUFFER_SIZE];
 
 static uint8_t uart_index_pos;
 static uint8_t* ptr;
@@ -73,10 +73,7 @@ QueueHandle_t xTargetPanQueue;
 QueueHandle_t xTargetTiltQueue;
 
 QueueHandle_t xEventsQueue;
-
 QueueHandle_t xPayloadTransferQueue;
-QueueHandle_t xPayloadDecodeQueue;
-
 
 /// TASK HANDLES ///
 TaskHandle_t xTaskSerialRx;
@@ -183,12 +180,6 @@ char* __EncodePayload(COMMS_PayloadHandle packet, uint8_t mssg_size, uint8_t evt
 	return txPackage;
 }
 
-COMMS_Data_Message __COMMS_DefaultDataMessage(void)
-{
-	COMMS_Data_Message defaultVal = { .type = 0, .value = 0 };
-	return defaultVal;
-}
-
 // Grabs a specified message type from the decoded payload if it exists;
 COMMS_Data_Message* __COMMS_GetMessage(COMMS_Data_Message* head, uint8_t data_messages_count, COMMS_Data_Message_Type type)
 {
@@ -204,6 +195,48 @@ COMMS_Data_Message* __COMMS_GetMessage(COMMS_Data_Message* head, uint8_t data_me
 	return NULL;
 }
 
+
+// Processes the DMA and UART buffer, moving data from DMA to UART buffer so it can be decoded
+void __DMABuffer_to_UARTBuffer(void)
+{
+	// calculate current position in buffer
+	// (the total buffer size - the remaining data to transfer) = current pos in buffer
+	size_t curr_pos = ARRAY_LEN(DMA_RX_Buffer) - __HAL_DMA_GET_COUNTER(&hdma_usart2_rx);
+	if (curr_pos != old_pos) // check that the pos ptr has changed
+	{
+		if (curr_pos > old_pos)		// current position is past the prev
+		{
+			// we are in "linear" mode (all the data we need is contiguous in buffer)
+			__COMMS_ProcessData(&DMA_RX_Buffer[old_pos], curr_pos - old_pos);
+		}
+		else
+		{
+			// we are in "overflow mode" (the data received from UART has wrapped around the buffer)
+			// First process data up to the end of the buffer
+			__COMMS_ProcessData(&DMA_RX_Buffer[old_pos], ARRAY_LEN(DMA_RX_Buffer) - old_pos);
+			if (curr_pos > 0)
+			{
+				// then process the data from beginning to the last data point
+				__COMMS_ProcessData(&DMA_RX_Buffer[0], curr_pos);
+			}
+		}
+
+		// Place the payload data onto the decode queue
+		// the decode Task is responsible for decoding and clearing out the buffer
+		if (__COMMS_IsValidDataStream())
+		{
+//			xQueueSend(xPayloadDecodeQueue, UART_Buffer, (TickType_t)0);
+			vTaskResume(xTaskDecodePayload);
+		}
+	}
+
+	old_pos = curr_pos;	// save the current position as old
+
+	if (old_pos == ARRAY_LEN(DMA_RX_Buffer))
+	{
+		old_pos = 0;
+	}
+}
 
 /// INIT FUNCTIONS ///
 
@@ -225,23 +258,23 @@ void Comms_Init(void)
 	__HAL_UART_ENABLE_IT (&huart2, UART_IT_IDLE);		// Enable idle line interrupt
 }
 
+// Priority of these tasks is VERY IMPORTANT!!
 void Comms_InitTasks(void)
 {
-	xTaskCreate(vCommsRxData, "ReceiveDMATransfer", configMINIMAL_STACK_SIZE, NULL, PRIO_RXDATA, &xTaskSerialRx);
-	xTaskCreate(vCommsTxData, "SendPayload", configMINIMAL_STACK_SIZE, NULL, PRIO_TXDATA, &xTaskSerialTx);
-	xTaskCreate(vCommsDecodePayload, "DecodePayload", configMINIMAL_STACK_SIZE, NULL, PRIO_DECODE, &xTaskDecodePayload);
+	xTaskCreate(vCommsTxData, "SendPayload", configMINIMAL_STACK_SIZE * 2, NULL, PRIO_TXDATA, &xTaskSerialTx);
+	xTaskCreate(vCommsRxData, "ReceiveDMATransfer", configMINIMAL_STACK_SIZE * 2, NULL, PRIO_RXDATA, &xTaskSerialRx);
+	xTaskCreate(vCommsDecodePayload, "DecodePayload", configMINIMAL_STACK_SIZE * 2, NULL, PRIO_DECODE, &xTaskDecodePayload);
 }
 
 void Comms_InitQueues(void)
 {
-	xTargetPanQueue= xQueueCreate(1, sizeof(COMMS_Data_Message));
-	xCurrentPanQueue = xQueueCreate(1, sizeof(COMMS_Data_Message));
+	xTargetPanQueue= xQueueCreate(10, sizeof(COMMS_Data_Message));
+	xCurrentPanQueue = xQueueCreate(10, sizeof(COMMS_Data_Message));
 
-	xTargetTiltQueue= xQueueCreate(1, sizeof(COMMS_Data_Message));
-	xCurrentTiltQueue = xQueueCreate(1, sizeof(COMMS_Data_Message));
+	xTargetTiltQueue= xQueueCreate(10, sizeof(COMMS_Data_Message));
+	xCurrentTiltQueue = xQueueCreate(10, sizeof(COMMS_Data_Message));
 
 	xEventsQueue = xQueueCreate(100, sizeof(COMMS_Header));
-	xPayloadDecodeQueue = xQueueCreate(10, sizeof(COMMS_Payload));
 	xPayloadTransferQueue = xQueueCreate(100, sizeof(COMMS_Messages_t));
 
 	// These are used for debugging
@@ -253,7 +286,6 @@ void Comms_InitQueues(void)
 
 	vQueueAddToRegistry(xEventsQueue, "Event Queue");
 	vQueueAddToRegistry(xPayloadTransferQueue, "Payload_Tx_Queue");
-	vQueueAddToRegistry(xPayloadDecodeQueue, "Payload_Decode_Queue");
 }
 
 
@@ -268,47 +300,30 @@ void Comms_InitQueues(void)
 // 		Can Have this check if the current total data processed is valid enough to begin decoding
 void vCommsRxData(void)
 {
+//	const TickType_t xBlockTime = pdMS_TO_TICKS( 500 );
+	uint32_t ulNotifiedValue;
+
 	while(true)
 	{
-		vTaskSuspend(NULL); // Suspend itself (Resumed by ISR)
+		// ulNotifiedValue is the counting semaphore's count before being decremented
+		ulNotifiedValue = ulTaskNotifyTake(pdTRUE, portMAX_DELAY); // Block task indefinitely till it is notified
 
-		// calculate current position in buffer
-		// (the total buffer size - the remaining data to transfer) = current pos in buffer
-		size_t curr_pos = ARRAY_LEN(DMA_RX_Buffer) - __HAL_DMA_GET_COUNTER(&hdma_usart2_rx);
-		if (curr_pos != old_pos) // check that the pos ptr has changed
+		// No notification was received
+		if (ulNotifiedValue == 0)
 		{
-			if (curr_pos > old_pos)		// current position is past the prev
+			// TODO: Error Handling
+//			continue;
+		}
+		else
+		{
+			// ulNotifiedValue holds the number of outstanding interrupts. We processes each one;
+			while (ulNotifiedValue > 0)
 			{
-				// we are in "linear" mode (all the data we need is contiguous in buffer)
-				__COMMS_ProcessData(&DMA_RX_Buffer[old_pos], curr_pos - old_pos);
-			}
-			else
-			{
-				// we are in "overflow mode" (the data received from UART has wrapped around the buffer)
-				// First process data up to the end of the buffer
-				__COMMS_ProcessData(&DMA_RX_Buffer[old_pos], ARRAY_LEN(DMA_RX_Buffer) - old_pos);
-				if (curr_pos > 0)
-				{
-					// then process the data from beginning to the last data point
-					__COMMS_ProcessData(&DMA_RX_Buffer[0], curr_pos);
-				}
-			}
-
-
-			// Place the payload data onto the decode queue
-			// the decode Task is responsible for decoding and clearing out the buffer
-			if (__COMMS_IsValidDataStream())
-			{
-				xQueueSendToBack(xPayloadDecodeQueue, UART_Buffer, (TickType_t)0);
+				__DMABuffer_to_UARTBuffer();
+				ulNotifiedValue--;
 			}
 		}
 
-		old_pos = curr_pos;	// save the current position as old
-
-		if (old_pos == ARRAY_LEN(DMA_RX_Buffer))
-		{
-			old_pos = 0;
-		}
 	}
 }
 
@@ -317,16 +332,19 @@ void vCommsRxData(void)
 //void vCommsDecodePayload(void* pvParams)
 void vCommsDecodePayload()
 {
-	COMMS_PayloadHandle payload;
+	volatile COMMS_PayloadHandle payload = pvPortMalloc(sizeof(COMMS_PayloadHandle));
 	while (true)
 	{
-		/// Read the data from the Queue if any exists
-		// using portMAX_DELAY will allow this task to wait till data is on the queue
-		// The task is put in the blocked stated till there is a message on the queue
-		if ( xQueueReceive(xPayloadDecodeQueue, payload, portMAX_DELAY) != pdPASS )
-		{
-			return;
-		}
+//		/// Read the data from the Queue if any exists
+//		// using portMAX_DELAY will allow this task to wait till data is on the queue
+//		// The task is put in the blocked stated till there is a message on the queue
+////		if ( xQueueReceive(xPayloadDecodeQueue, payload, portMAX_DELAY) != pdPASS )
+//		if ( xQueueReceive(xPayloadDecodeQueue, payload, portMAX_DELAY) != pdPASS )
+//		{
+//			continue;
+//		}
+
+		vTaskSuspend(NULL);	// SUSPEND SELF
 
 		// get size of Data Messages (in bytes)
 		uint8_t size_data_messages = UART_Buffer[1]; // includes 5 bytes of sys time (1 byte header + 4 bytes value)
@@ -348,10 +366,10 @@ void vCommsDecodePayload()
 
 		data_mssg_ptr = pvPortMalloc(data_messages_count * sizeof(*data_mssg_ptr));
 		payload->messages = data_mssg_ptr;
-		size_t size = data_messages_count * sizeof(COMMS_Data_Message);
+		size_t size = data_messages_count * sizeof(*data_mssg_ptr);
 		if (data_mssg_ptr == NULL)
 		{
-			return;
+			continue;
 		}
 
 		// fill memory with data messages
@@ -369,7 +387,7 @@ void vCommsDecodePayload()
 		evt_mssg_ptr = pvPortMalloc(sizeof(COMMS_Header) * size_event_messages);
 		if (evt_mssg_ptr == NULL)
 		{
-			return;
+			continue;
 		}
 
 		payload->events = evt_mssg_ptr;
@@ -394,22 +412,22 @@ void vCommsDecodePayload()
 		// place on queue
 		if (targetPan != NULL)
 		{
-			xQueueSendToBack(xTargetPanQueue, (void*)(targetPan), (TickType_t)0);
+			xQueueSend(xTargetPanQueue, (void*)(targetPan), (TickType_t)0);
 		}
 
 		if (targetTilt != NULL)
 		{
-			xQueueSendToBack(xTargetTiltQueue, (void*)(targetTilt), (TickType_t)0);
+			xQueueSend(xTargetTiltQueue, (void*)(targetTilt), (TickType_t)0);
 		}
 
 		if (currentPan != NULL)
 		{
-			xQueueSendToBack(xCurrentPanQueue, (void*)(currentPan), (TickType_t)0);
+			xQueueSend(xCurrentPanQueue, (void*)(currentPan), (TickType_t)0);
 		}
 
 		if (currentTilt != NULL)
 		{
-			xQueueSendToBack(xCurrentTiltQueue, (void*)(currentTilt), (TickType_t)0);
+			xQueueSend(xCurrentTiltQueue, (void*)(currentTilt), (TickType_t)0);
 		}
 
 		// Clear out the Buffer to allow for new input
@@ -422,7 +440,6 @@ void vCommsDecodePayload()
 // Receive the data from a queue and
 // task should exist forever
 // should send the data from the queue
-//void vCommsTxData(void* pvParam)
 void vCommsTxData(void)
 {
 	const uint8_t start = COMMS_START;
@@ -432,14 +449,11 @@ void vCommsTxData(void)
 	// Task is started whenever there is new data on its Queue
 	while (true)
 	{
-//		vTaskSuspend(NULL);	// SUSPEND SELF
-
 		/// Read the data from the Queue if any exists
 		// Queue could not retrieve the queue Data value OR queue is empty
 		if ( xQueueReceive(xPayloadTransferQueue, &queueData, portMAX_DELAY) != pdPASS )
 		{
-			// TODO: Implement better error handling
-			return;
+			continue;
 		}
 
 		// ******** SIZE OF DATA (INCUDING HEADERS) in bytes ********
@@ -470,7 +484,7 @@ void vCommsTxData(void)
 		if (result_tx != HAL_OK)
 		{
 			// TODO: Implement Better Error handling
-			return;
+			continue;
 		}
 	}
 }
