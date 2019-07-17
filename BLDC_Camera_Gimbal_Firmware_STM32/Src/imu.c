@@ -174,6 +174,7 @@ void IMU_CalcEulerAngles(IMU_Handle_t imu)
 
 	float pitch, yaw, roll;
 
+	/*
 	float dqw = qToFloat(imu->quat[0], 30);
 	float dqx = qToFloat(imu->quat[1], 30);
 	float dqy = qToFloat(imu->quat[2], 30);
@@ -197,9 +198,38 @@ void IMU_CalcEulerAngles(IMU_Handle_t imu)
 	pitch *= (180.0 / M_PI);
 	roll *= (180.0 / M_PI);
 	yaw *= (180.0 / M_PI);
+
+
 	if (pitch < 0) pitch = 360.0 + pitch;
 	if (roll < 0) roll = 360.0 + roll;
 	if (yaw < 0) yaw = 360.0 + yaw;
+	*/
+
+	float qw = qToFloat(imu->quat[0], 30);
+	float qx = qToFloat(imu->quat[1], 30);
+	float qy = qToFloat(imu->quat[2], 30);
+	float qz = qToFloat(imu->quat[3], 30);
+
+	// roll (x-axis rotation)
+	float sinr_cosp = +2.0f * (qw * qx + qy * qz);
+	float cosr_cosp = +1.0f - 2.0f * (qx * qx + qy * qy);
+	roll = atan2(sinr_cosp, cosr_cosp);
+
+	// pitch (y-axis rotation)
+	double sinp = +2.0f * (qw * qy - qz * qx);
+	if (fabs(sinp) >= 1.0f)
+		pitch = copysignf(M_PI_2, sinp); // use 90 degrees if out of range
+	else
+		pitch = asin(sinp);
+
+	// yaw (z-axis rotation)
+	float siny_cosp = +2.0f * (qw * qz + qx * qy);
+	float cosy_cosp = +1.0f - 2.0f * (qy * qy + qz * qz);
+	yaw = atan2(siny_cosp, cosy_cosp);
+
+	pitch *= (180.0 / M_PI);
+	roll *= (180.0 / M_PI);
+	yaw *= (180.0 / M_PI);
 
 	imu->pos.pitch = pitch;
 	imu->pos.roll = roll;
