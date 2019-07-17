@@ -1,6 +1,10 @@
 #pragma once
 #pragma pack(1)
 
+
+#define ARRAY_LEN(x)	(sizeof(x) / sizeof((x)[0]))
+
+
 typedef enum { false, true } bool;
 
 // ***************** Message format ***************
@@ -51,7 +55,7 @@ typedef struct SendDataStrct {
 	uint8_t evt_size;
 	COMMS_Header* events;
 	COMMS_Data_Message* messages;
-} COMMS_SendData_Params;
+} COMMS_Messages_t;
 // ***************** Struct Handles ***************
 
 typedef COMMS_Payload* COMMS_PayloadHandle;
@@ -68,8 +72,10 @@ void Comms_InitTasks(void);
 void Comms_InitQueues(void);
 
 void vCommsRxData(void);
-void vCommsDecodePayload(void* pvParams);
-void vCommsTxData(void* pvParam);
+//void vCommsDecodePayload(void* pvParams);
+//void vCommsTxData(void* pvParam);
+void vCommsDecodePayload();
+void vCommsTxData(void);
 
 
 

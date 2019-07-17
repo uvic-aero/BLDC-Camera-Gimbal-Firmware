@@ -76,6 +76,18 @@ DMA_HandleTypeDef hdma_usart2_rx;
 osThreadId defaultTaskHandle;
 /* USER CODE BEGIN PV */
 
+extern TaskHandle_t xTaskSerialRx;
+extern TaskHandle_t xTaskSerialTx;
+extern TaskHandle_t xTaskDecodePayload;
+
+extern QueueHandle_t xPayloadTransferQueue;
+extern QueueHandle_t xPayloadDecodeQueue;
+
+extern QueueHandle_t xCurrentPanQueue;
+extern QueueHandle_t xCurrentTiltQueue;
+extern QueueHandle_t xTargetPanQueue;
+extern QueueHandle_t xTargetTiltQueue;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -94,22 +106,64 @@ static void MX_USART2_UART_Init(void);
 void StartDefaultTask(void const * argument);
 
 /* USER CODE BEGIN PFP */
-void vTest (void* pvparams){
-	while(1){
-		vTaskDelay(1000);
-		printf("test");
+void vSend_Data (void* pvparams){
+	COMMS_Data_Message messages[] = { { .type = COMMS_Curr_Tilt, .value = 0xFF }, { .type = COMMS_Curr_Pan, .value = 0xAA } };
+	COMMS_Header events[] = { 0x33 , 0x69 };
+	COMMS_Messages_t data = { .events = events, .evt_size = ARRAY_LEN(events), .messages = messages, .mssg_size = ARRAY_LEN(messages) };
+	// Start => 					0xAA
+	// Size of data messages => 	0x0B
+	// Size of event messages => 	0x02
+	// Sys time mssg => 			(header)0x01  (value = 	Hex:0x50356e3e) 0x50 0x35 0x6E 0x3E
+	// data messages => 			(header)0x03 (value)0x00 0xFF
+	//				   				(header)0x02 (value)0x00 0xAA
+	// Events 		=> 				(header)0x33 (header)0x69
+	// Stop 		=> 				0xDB
+	// 0XAA 0X0B 0X02 0X01 0x50 0x35 0x6E 0x3E 0X03 0X00 0XFF 0x02 0x00 0xAA 0X33 0X69 0XDB
+	while(1)
+	{
+		xQueueSend(xPayloadTransferQueue, &data, (TickType_t)0);
+		vTaskDelay(8000);
 	}
 }
 
-void vUART_Receive_Test(void* params)
+void vUART_Receive_CurrentPanQueue(void* params)
 {
-	COMMS_Payload payload;
+	COMMS_Data_Message curr_pan;
 	while(1)
 	{
-//		DecodePayload(&payload);
-		vTaskDelay(1000);
+		if ( xQueueReceive(xCurrentPanQueue, &curr_pan, portMAX_DELAY) != pdPASS )
+		{
+			return;
+		}
+		printf("value of current-pan are: %x", curr_pan.value);
+//		vTaskSuspend(NULL);
 	}
 }
+
+void vUART_Receive_CurrentTiltQueue(void* params)
+{
+	COMMS_Data_Message curr_tilt;
+	while(1)
+	{
+		if ( xQueueReceive(xCurrentTiltQueue, &curr_tilt, portMAX_DELAY) != pdPASS )
+		{
+			return;
+		}
+		printf("value of current-pan are: %x", curr_tilt.value);
+//		vTaskSuspend(NULL);
+	}
+}
+/*
+ * 	// Start => 					0xAA
+	// Size of data messages => 	0x0B
+	// Size of event messages => 	0x05
+	// Sys time mssg => 			(header)0x01  (value = 	Hex:0x12345678) 0x12 0x34 0x56 0x78
+	// data messages => 			(header)0x03 (value)0x69 0x99
+	//				   				(header)0x02 (value)0x99 0xAA
+	// Events 		=> 				(header)0x33 (header)0x82 (header)0x66 (header)0x81 (header)0x88
+	// Stop 		=> 				0xDB
+ * 0xAA 0x0B 0x05 0x01 0x12 0x34 0x56 0x78 0x03 0x69 0x99 0x02 0x99 0xAA 0x33 0x82 0x66 0x81 0x88 0xDB
+ * */
 
 // Create a Tasks for handling ISR logic
 // 	Ensure that the Task suspends itself using vTaskSuspend(NULL)
@@ -121,27 +175,6 @@ void vUART_Receive_Test(void* params)
 // Decode the payload and place each value decoded into their own queue's (eg pitch, roll, yaw queues)
 
 
-
-
-
-//void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
-//{
-//  puts("from HAL_UART_RxCpltCallback");
-//  HAL_UART_Transmit(&huart2, DMA_RX_Buffer, DMA_RX_BUFFER_SIZE, 10000);
-//}
-//
-//void HAL_UART_RxHalfCpltCallback(UART_HandleTypeDef *huart)
-//{
-//	puts("from HAL_UART_RxHalfCpltCallback");
-//	uint16_t rxSize = huart->RxXferSize;
-//}
-
-//void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
-//{
-//	  puts("from HAL_UART_TxCpltCallback");
-//	  HAL_UART_Transmit(&huart2, DMA_RX_Buffer, DMA_RX_BUFFER_SIZE, 10000);
-//
-//}
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -198,8 +231,8 @@ int main(void)
   Comms_Init();
 
 //  COMMS_RX_Check();
-  COMMS_Data_Message messages[] = { { .type = 0b10101011, .value = 0xFF }, { .type = 0b10101011, .value = 0xAA } };
-  COMMS_Header events[] = { 0x33 , 0x69 };
+//  COMMS_Data_Message messages[] = { { .type = COMMS_Curr_Tilt, .value = 0xFF }, { .type = COMMS_Curr_Pan, .value = 0xAA } };
+//  COMMS_Header events[] = { 0x33 , 0x69 };
 //  COMMS_SendData_Params sendDataStruct = { .messages = messages, .mssg_size = 2, .events = events, .evt_size = 2 };
 //  SendData(messages, 2, events, 2);
 
@@ -231,8 +264,9 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
-  xTaskCreate(vTest,"testfunc",configMINIMAL_STACK_SIZE,NULL,2,NULL);
-  xTaskCreate(vUART_Receive_Test, "UART_Rx_Test", configMINIMAL_STACK_SIZE, NULL, 3, NULL);
+  xTaskCreate(vSend_Data,"Send_Payload", configMINIMAL_STACK_SIZE, NULL, 3, NULL);
+  xTaskCreate(vUART_Receive_CurrentPanQueue, "UART_Receive_PitchQueue", configMINIMAL_STACK_SIZE, NULL, 3, NULL);
+  xTaskCreate(vUART_Receive_CurrentTiltQueue, "vUART_Receive_CurrentTiltQueue", configMINIMAL_STACK_SIZE, NULL, 3, NULL);
   /* USER CODE END RTOS_THREADS */
 
   /* Start scheduler */

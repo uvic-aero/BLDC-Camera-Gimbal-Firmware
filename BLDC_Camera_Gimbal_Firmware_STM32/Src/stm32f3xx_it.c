@@ -185,8 +185,11 @@ void DMA1_Channel6_IRQHandler(void)
   if (__HAL_DMA_GET_IT_SOURCE(&hdma_usart2_rx, DMA_IT_TC))
   {
 	  __HAL_DMA_CLEAR_FLAG(&hdma_usart2_rx, DMA_FLAG_TC1);	// clear the interrupt flag
-	  BaseType_t isYieldRequired = xTaskResumeFromISR(xTaskSerialRx);
-	  portYIELD_FROM_ISR(isYieldRequired);
+	  BaseType_t xYieldRequired = xTaskResumeFromISR(xTaskSerialRx);
+	  if (xYieldRequired == pdTRUE)
+	  {
+		  portYIELD_FROM_ISR(xYieldRequired);
+	  }
 //	  COMMS_RX_Check();						// check for data to process
   }
 
@@ -209,9 +212,11 @@ void USART2_IRQHandler(void)
   if (__HAL_UART_GET_FLAG(&huart2, UART_FLAG_IDLE))
   {
 	  __HAL_UART_CLEAR_FLAG(&huart2, UART_CLEAR_IDLEF);		// clear the idle interrupt flag
-	  BaseType_t isYieldRequired = xTaskResumeFromISR(xTaskSerialRx);
-	  portYIELD_FROM_ISR(isYieldRequired);
-//	  COMMS_RX_Check();										// check for data to process
+	  BaseType_t xYieldRequired = xTaskResumeFromISR(xTaskSerialRx);
+	  if (xYieldRequired == pdTRUE)
+	  {
+		  portYIELD_FROM_ISR(xYieldRequired);
+	  }
   }
 
   /* USER CODE END USART2_IRQn 1 */
