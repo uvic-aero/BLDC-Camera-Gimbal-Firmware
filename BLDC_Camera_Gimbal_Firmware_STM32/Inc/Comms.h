@@ -81,8 +81,8 @@ void Comms_InitTasks(void);
 
 void Comms_InitQueues(void);
 
-void vCommsRxData(void);
+void vCommsRxData(void* pvParams);
 
-void vCommsDecodePayload();
+void vCommsDecodePayload(void* pvParams);
 
-void vCommsTxData(void);
+void vCommsTxData(void* pvParams);

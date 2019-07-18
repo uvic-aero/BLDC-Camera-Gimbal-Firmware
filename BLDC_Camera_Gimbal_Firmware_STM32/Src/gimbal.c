@@ -19,6 +19,7 @@
 ///  Module Headers ///
 #include "imu.h"
 #include "rc_input.h"
+#include "Comms.h"
 /// others...
 
 /*====================== DEFINES ========================= */
@@ -61,6 +62,7 @@ TaskHandle_t xTaskRcMode;
 /// Top-level Init function
 void Gimbal_Init(void)
 {
+	Comms_Init();
 	Gimbal_InitSensors();
 	Gimbal_InitQueues();
 	Gimbal_InitTasks();

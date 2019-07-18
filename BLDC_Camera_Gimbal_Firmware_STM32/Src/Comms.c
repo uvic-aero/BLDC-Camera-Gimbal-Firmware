@@ -287,7 +287,7 @@ void Comms_InitQueues(void)
 // 		possibly make this a task and have a hard deadline for this
 // 		can have this run every 1ms or something like that
 // 		Can Have this check if the current total data processed is valid enough to begin decoding
-void vCommsRxData(void)
+void vCommsRxData(void* pvParams)
 {
 	uint32_t ulNotifiedValue;
 
@@ -317,7 +317,7 @@ void vCommsRxData(void)
 // Purpose
 // 		Decodes the Payload and place its contents onto their respective queues
 //		Receive Data from its own queue
-void vCommsDecodePayload()
+void vCommsDecodePayload(void* pvParams)
 {
 	uint8_t size_data_messages;
 	uint8_t size_event_messages;
@@ -390,7 +390,7 @@ void vCommsDecodePayload()
 // Purpose
 // 		Wraps type --COMMS_Message-- into type --COMMS_Payload-- and transmits via UART
 //		Receive Data from its own queue
-void vCommsTxData(void)
+void vCommsTxData(void* pvParams)
 {
 	uint8_t events_size;
 	uint8_t time_mssg_size_h;
