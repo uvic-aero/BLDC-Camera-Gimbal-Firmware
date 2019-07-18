@@ -74,13 +74,12 @@ extern TaskHandle_t xTaskSerialRx;
 extern TaskHandle_t xTaskSerialTx;
 extern TaskHandle_t xTaskDecodePayload;
 
-extern QueueHandle_t xPayloadTransferQueue;
-extern QueueHandle_t xPayloadDecodeQueue;
-
-extern QueueHandle_t xCurrentPanQueue;
-extern QueueHandle_t xCurrentTiltQueue;
 extern QueueHandle_t xTargetPanQueue;
 extern QueueHandle_t xTargetTiltQueue;
+extern QueueHandle_t xSystemTimeQueue;
+
+extern QueueHandle_t xEventsQueue;
+extern QueueHandle_t xDataTransmitQueue;
 
 /* USER CODE END PV */
 
@@ -102,8 +101,9 @@ void StartDefaultTask(void const * argument);
 /* USER CODE BEGIN PFP */
 void vSend_Data (void* pvparams){
 	COMMS_Data_Message messages[] = { { .type = COMMS_Curr_Tilt, .value = 0xFF }, { .type = COMMS_Curr_Pan, .value = 0xAA } };
-	COMMS_Header events[] = { 0x33 , 0x69 };
-	COMMS_Messages_t data = { .events = events, .evt_size = ARRAY_LEN(events), .messages = messages, .mssg_size = ARRAY_LEN(messages) };
+//	COMMS_Header events[] = { 0x81 , 0x82 };
+	bool toggle = false;
+	COMMS_Message data = {0};
 
 	/***********  Tx data Structure (For Testing)  *************/
 	// Start => 					0xAA
@@ -115,38 +115,65 @@ void vSend_Data (void* pvparams){
 	// Events 		=> 				(header)0x33 (header)0x69
 	// Stop 		=> 				0xDB
 	// 0XAA 0X0B 0X02 0X01 0x50 0x35 0x6E 0x3E 0X03 0X00 0XFF 0x02 0x00 0xAA 0X33 0X69 0XDB
+
+	/***********  Tx data Structure (For Testing)  *************/
+	// Start => 					0xAA
+	// Size of data messages => 	0x08
+	// Size of event messages => 	0x01
+	// Sys time mssg => 			(header)0x01  (value = 	Hex:0x50356e3e) 0x50 0x35 0x6E 0x3E
+	// data message => 				(header)0x03 (value)0x00 0xFF
+	// Event 		=> 				(header)0x81
+	// Stop 		=> 				0xDB
+	// 0XAA 0X08 0X01 0X01 0x50 0x35 0x6E 0x3E 0X03 0X00 0XFF 0X81 0XDB
+
+	/***********  Tx data Structure (For Testing)  *************/
+	// Start => 					0xAA
+	// Size of data messages => 	0x08
+	// Size of event messages => 	0x01
+	// Sys time mssg => 			(header)0x01  (value = 	Hex:0x50356e3e) 0x50 0x35 0x6E 0x3E
+	// data messages => 			(header)0x02 (value)0x00 0xAA
+	// Events 		=> 				(header)0x82
+	// Stop 		=> 				0xDB
+	// 0XAA 0X08 0X01 0X01 0x50 0x35 0x6E 0x3E 0X02 0X00 0XAA 0X82 0XDB
 	while(1)
 	{
-		xQueueSend(xPayloadTransferQueue, &data, (TickType_t)0);
-		vTaskDelay(8000);
+		data.message = messages[(int)toggle];
+//		data.event = events[(int)toggle];
+		toggle ^= 1;
+
+		xQueueSend(xDataTransmitQueue, &data, (TickType_t)0);
+		memset(&data, 0, sizeof(COMMS_Message));
+ 		vTaskDelay(10000);
 	}
 }
 
-void vUART_Receive_CurrentPanQueue(void* params)
+void vUART_Receive_Events(void* params)
 {
-	COMMS_Data_Message curr_pan;
+	COMMS_Header event;
 	while(1)
 	{
-		if ( xQueueReceive(xCurrentPanQueue, &curr_pan, portMAX_DELAY) != pdPASS )
+		if ( xQueueReceive(xEventsQueue, &event, portMAX_DELAY) != pdPASS )
 		{
 			return;
 		}
-		printf("value of current-pan are: %x", curr_pan.value);
+		printf("Event is: %x", event);
 	}
 }
 
-void vUART_Receive_CurrentTiltQueue(void* params)
+void vUART_Receive_SysTime(void* params)
 {
-	COMMS_Data_Message curr_tilt;
+	COMMS_Time_Message message;
 	while(1)
 	{
-		if ( xQueueReceive(xCurrentTiltQueue, &curr_tilt, portMAX_DELAY) != pdPASS )
+		if ( xQueueReceive(xSystemTimeQueue, &message, portMAX_DELAY) != pdPASS )
 		{
 			return;
 		}
-		printf("value of current-pan are: %x", curr_tilt.value);
+		printf("value of message is: %x", message.value);
 	}
 }
+
+// Only need to retrieve the target values
 
 void vUART_Receive_TargetPanQueue(void* params)
 {
@@ -157,9 +184,16 @@ void vUART_Receive_TargetPanQueue(void* params)
 		{
 			return;
 		}
-		printf("value of current-pan are: %x", target_pan.value);
+
+		// Receive and send right back
+		COMMS_Message tx_mssg1 = { .message = target_pan };
+		COMMS_Message tx_mssg2 = { .message = target_pan, .event = COMMS_Switch_USB };
+
+		xQueueSend(xDataTransmitQueue, &tx_mssg1,  (TickType_t)0);
+		xQueueSend(xDataTransmitQueue, &tx_mssg2,  (TickType_t)0);
 	}
 }
+
 
 void vUART_Receive_TargetTiltQueue(void* params)
 {
@@ -170,7 +204,9 @@ void vUART_Receive_TargetTiltQueue(void* params)
 		{
 			return;
 		}
-		printf("value of current-pan are: %x", target_tilt.value);
+		// Receive and send right back
+		COMMS_Message tx_mssg = { .message = target_tilt, .event = COMMS_Switch_RC };
+		xQueueSend(xDataTransmitQueue, &tx_mssg,  (TickType_t)0);
 	}
 }
 
@@ -205,10 +241,10 @@ void vApplicationStackOverflowHook(xTaskHandle xTask, signed char *pcTaskName)
 	// Sys time mssg => 			(header)0x01 (value) 0x50 0x35 0x6E 0x3E
 	// data messages => 			(header)0x04 (value)0x55 0x44
 	//				   				(header)0x05 (value)0xDC 0xCD
-	// Events 		=> 				(header)0x33 (header)0x55 (header)0x66 (header)0x77 (header)0x88
+	// Events 		=> 				(header)0x81 (header)0x55 (header)0x66 (header)0x77 (header)0x82
 	// Stop 		=> 				0xDB
  *
- * 0xAA 0x0B 0x05 0x01 0x50 0x35 0x6E 0x3E 0x04 0x55 0x44 0x05 0xDC 0xCD 0x33 0x55 0x66 0x77 0x88 0xDB
+ * 0xAA 0x0B 0x05 0x01 0x50 0x35 0x6E 0x3E 0x04 0x55 0x44 0x05 0xDC 0xCD 0x81 0x55 0x66 0x77 0x82 0xDB
  * /
 
 /* USER CODE END PFP */
@@ -298,8 +334,8 @@ int main(void)
   /* add threads, ... */
   xTaskCreate(vSend_Data,"Send_Payload", configMINIMAL_STACK_SIZE, NULL, 3, NULL);
 
-  xTaskCreate(vUART_Receive_CurrentPanQueue, "vUART_Receive_CurrentPanQueue", configMINIMAL_STACK_SIZE, NULL, 5, NULL);
-  xTaskCreate(vUART_Receive_CurrentTiltQueue, "vUART_Receive_CurrentTiltQueue", configMINIMAL_STACK_SIZE, NULL, 5, NULL);
+  xTaskCreate(vUART_Receive_Events, "vUART_Receive_Events", configMINIMAL_STACK_SIZE, NULL, 5, NULL);
+  xTaskCreate(vUART_Receive_SysTime, "vUART_Receive_SysTime", configMINIMAL_STACK_SIZE, NULL, 5, NULL);
 
   xTaskCreate(vUART_Receive_TargetPanQueue, "vUART_Receive_TargetPanQueue", configMINIMAL_STACK_SIZE, NULL, 5, NULL);
   xTaskCreate(vUART_Receive_TargetTiltQueue, "vUART_Receive_TargetTiltQueue", configMINIMAL_STACK_SIZE, NULL, 5, NULL);

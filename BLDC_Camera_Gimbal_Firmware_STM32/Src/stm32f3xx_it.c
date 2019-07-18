@@ -68,8 +68,6 @@ extern TIM_HandleTypeDef htim6;
 
 /// EXTERNAL VARIABLES (FROM Comms.h) ///
 extern TaskHandle_t xTaskSerialRx;
-extern TaskHandle_t xTaskDecodePayload;
-extern TaskHandle_t xTaskSerialTx;
 
 /* USER CODE END EV */
 

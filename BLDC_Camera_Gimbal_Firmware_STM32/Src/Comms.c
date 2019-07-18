@@ -29,19 +29,18 @@
 #define PRIO_DECODE					((UBaseType_t)6)
 
 /// ARRAY SIZE CONSTANTS ///
-#define DMA_RX_BUFFER_SIZE          64
-#define UART_BUFFER_SIZE            20
+#define DMA_RX_BUFFER_SIZE          (100)
+#define UART_BUFFER_SIZE            (50)
+
 
 /// QUEUE SIZE CONSTANTS ///
 #define QSIZE_PTICH					(1)
 #define QSIZE_YAW					(1)
 #define QSIZE_ROLL					(1)
 
-/// Constant Types ///
-//#define Data_Message_Default		(COMMS_Data_Message defaultVal = { .type = 0, .value = 0 })
-
 // MACROS
-#define ARRAY_LEN(x)	(sizeof(x) / sizeof((x)[0]))
+#define ARRAY_LEN(x)				(sizeof(x) / sizeof((x)[0]))
+#define COMMS_DEFAULT_STACK_SIZE 	((configMINIMAL_STACK_SIZE) * (2))
 
 /* ================= SHARED GLOBAL VARIABLES  ================= */
 
@@ -58,47 +57,26 @@ static volatile uint8_t UART_Buffer[UART_BUFFER_SIZE];
 static uint8_t uart_index_pos;
 static uint8_t* ptr;
 static size_t old_pos;
-static size_t length, toCopy, Write;
-
-/// POINTER VARIABLES ///
-// these memory locations are freed as soon as the messages are placed in there respective queues
-// will have to switch to a different heap to free them;
-COMMS_Header* evt_mssg_ptr;
-COMMS_Data_Message* data_mssg_ptr;
 
 /// QUEUE HANDLES ///
-QueueHandle_t xCurrentPanQueue;
-QueueHandle_t xCurrentTiltQueue;
+QueueHandle_t xEventsQueue;
 QueueHandle_t xTargetPanQueue;
 QueueHandle_t xTargetTiltQueue;
-
-QueueHandle_t xEventsQueue;
-QueueHandle_t xPayloadTransferQueue;
+QueueHandle_t xSystemTimeQueue;
+QueueHandle_t xDataTransmitQueue;
 
 /// TASK HANDLES ///
 TaskHandle_t xTaskSerialRx;
 TaskHandle_t xTaskSerialTx;
 TaskHandle_t xTaskDecodePayload;
 
-/* ================= FUNCTIONS  ================= */
-
-/// IRQ Handler Callbacks ///
-void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
-{
-  puts("from HAL_UART_RxCpltCallback");
-  HAL_UART_Transmit(&huart2, DMA_RX_Buffer, DMA_RX_BUFFER_SIZE, 10000);
-}
-
-void HAL_UART_RxHalfCpltCallback(UART_HandleTypeDef *huart)
-{
-	puts("from HAL_UART_RxHalfCpltCallback");
-	uint16_t rxSize = huart->RxXferSize;
-}
+/* ======================================== FUNCTIONS  ======================================== */
 
 
-/// Private Module Utility Functions ///
+/* ================= Private Module Utility Functions  ================ */
 
-// Checks if the data stream transferred from DMA buffer is of valid format
+// Purpose
+// 		Checks if the data stream transferred from DMA buffer is of valid format
 bool __COMMS_IsValidDataStream(void)
 {
 	// check that the first element is a start byte
@@ -115,19 +93,10 @@ bool __COMMS_IsValidDataStream(void)
 	return false;
 }
 
-uint8_t __COMMS_GetPayloadLength(void)
-{
-	return uart_index_pos + 1;
-}
-
 // Purpose
 // 		Copies data of size (len) from staring point of a given buffer/array to the global UART buffer
-// Private method
-void __COMMS_ProcessData(const void* data, size_t len)
+void __COMMS_ProcessData(void* data, size_t len)
 {
-	// TODO: Add a flag (global var) to indicate when receiving new data, so i can only add data starting from the beginning of UART_Buffer
-	// meaning i'll reset the uart_index_pos value to 0
-	// can be based of when i've read the stop byte in the transmission protocol
 	const uint8_t* d = data;
 	while (len--)
 	{
@@ -141,6 +110,8 @@ void __COMMS_ProcessData(const void* data, size_t len)
 	}
 }
 
+// Purpose
+// 		Serializes the payload into a byte-stream
 char* __EncodePayload(COMMS_PayloadHandle packet, uint8_t mssg_size, uint8_t evt_size, uint8_t* txPackage)
 {
 	char* block = txPackage;
@@ -158,7 +129,7 @@ char* __EncodePayload(COMMS_PayloadHandle packet, uint8_t mssg_size, uint8_t evt
 	*block = *((char*)&(packet->sys_time.value)+1);		block++;
 	*block = *((char*)&(packet->sys_time.value)+0);		block++;
 
-	// serializing data messages (variable length)
+	// serializing data messages
 	COMMS_Data_Message* pMssg = packet->messages;
 	for (uint8_t i = 0; i < mssg_size; i++, pMssg++)
 	{
@@ -168,7 +139,7 @@ char* __EncodePayload(COMMS_PayloadHandle packet, uint8_t mssg_size, uint8_t evt
 	}
 
 	// serializing events (variable length)
-	COMMS_Header* pEvts = packet->events;
+	COMMS_Event_Message* pEvts = packet->events;
 	for (uint8_t i = 0; i < evt_size; i++, pEvts++)
 	{
 		*block = *((char*)pEvts);						block++;
@@ -180,23 +151,44 @@ char* __EncodePayload(COMMS_PayloadHandle packet, uint8_t mssg_size, uint8_t evt
 	return txPackage;
 }
 
-// Grabs a specified message type from the decoded payload if it exists;
-COMMS_Data_Message* __COMMS_GetMessage(COMMS_Data_Message* head, uint8_t data_messages_count, COMMS_Data_Message_Type type)
+// Purpose
+// 		Grabs a specified message type from the payload
+bool __COMMS_GetMessage(COMMS_Data_Message* messageRef, COMMS_Data_Message* head, uint8_t data_messages_count, COMMS_Data_Message_Type type)
 {
 	while (data_messages_count-- > 0)
 	{
 		if (head->type == (COMMS_Header)type)
 		{
-			return head;
+			messageRef->type = head->type;
+			messageRef->value = head->value << 8 | head->value >> 8; // reverse order of byte
+			return true;
 		}
 		head++;
 	}
 
-	return NULL;
+	// No message of the type --COMMS_Data_Message_Type-- exists
+	return false;
 }
 
+// Purpose
+// 		Grabs a specified Event type type from the payload
+bool __COMMS_GetEvent(COMMS_Event_Message* event, COMMS_Event_Message* head, uint8_t events_count, COMMS_Event_Message_Type type)
+{
+	while (events_count-- > 0)
+	{
+		if (*head == (COMMS_Event_Message)type)
+		{
+			*event = *head;
+			return true;
+		}
+		head++;
+	}
 
-// Processes the DMA and UART buffer, moving data from DMA to UART buffer so it can be decoded
+	return false;
+}
+
+/// Purpose
+/// 	Processes the DMA and UART buffer, moving data from DMA to UART buffer so it can be decoded
 void __DMABuffer_to_UARTBuffer(void)
 {
 	// calculate current position in buffer
@@ -238,14 +230,11 @@ void __DMABuffer_to_UARTBuffer(void)
 	}
 }
 
-/// INIT FUNCTIONS ///
 
-// Initializes the Module.
-/*
- * A DMA controller is only able to issue interrupts when its buffer is either full or halfway full.
- * however considering UART communication, in most cases the received amount of data is not known in advance
- * and the end of transfer cannot be detected.
- * */
+/* ================= Initialization Functions  ================ */
+
+// Purpose
+// 		Initializes the Module.
 void Comms_Init(void)
 {
 	// Init The tasks and Queues before enabling the interrupts
@@ -258,38 +247,38 @@ void Comms_Init(void)
 	__HAL_UART_ENABLE_IT (&huart2, UART_IT_IDLE);		// Enable idle line interrupt
 }
 
-// Priority of these tasks is VERY IMPORTANT!!
+// Purpose
+// 		Initializes the Tasks.
 void Comms_InitTasks(void)
 {
-	xTaskCreate(vCommsTxData, "SendPayload", configMINIMAL_STACK_SIZE * 2, NULL, PRIO_TXDATA, &xTaskSerialTx);
-	xTaskCreate(vCommsRxData, "ReceiveDMATransfer", configMINIMAL_STACK_SIZE * 2, NULL, PRIO_RXDATA, &xTaskSerialRx);
-	xTaskCreate(vCommsDecodePayload, "DecodePayload", configMINIMAL_STACK_SIZE * 2, NULL, PRIO_DECODE, &xTaskDecodePayload);
+	xTaskCreate(vCommsTxData, "SendPayload", COMMS_DEFAULT_STACK_SIZE, NULL, PRIO_TXDATA, &xTaskSerialTx);
+	xTaskCreate(vCommsRxData, "ReceiveDMATransfer", COMMS_DEFAULT_STACK_SIZE, NULL, PRIO_RXDATA, &xTaskSerialRx);
+	xTaskCreate(vCommsDecodePayload, "DecodePayload", COMMS_DEFAULT_STACK_SIZE, NULL, PRIO_DECODE, &xTaskDecodePayload);
 }
 
+// Purpose
+// 		Initializes the Queues.
 void Comms_InitQueues(void)
 {
-	xTargetPanQueue= xQueueCreate(10, sizeof(COMMS_Data_Message));
-	xCurrentPanQueue = xQueueCreate(10, sizeof(COMMS_Data_Message));
+	xTargetPanQueue= xQueueCreate(1, sizeof(COMMS_Data_Message));
+	xTargetTiltQueue= xQueueCreate(1, sizeof(COMMS_Data_Message));
 
-	xTargetTiltQueue= xQueueCreate(10, sizeof(COMMS_Data_Message));
-	xCurrentTiltQueue = xQueueCreate(10, sizeof(COMMS_Data_Message));
-
-	xEventsQueue = xQueueCreate(100, sizeof(COMMS_Header));
-	xPayloadTransferQueue = xQueueCreate(100, sizeof(COMMS_Messages_t));
+	xEventsQueue = xQueueCreate(10, sizeof(COMMS_Event_Message));
+	xSystemTimeQueue = xQueueCreate(1, sizeof(COMMS_Time_Message));
+	xDataTransmitQueue = xQueueCreate(10, sizeof(COMMS_Message));
 
 	// These are used for debugging
 	vQueueAddToRegistry(xTargetPanQueue, "Target_Pan");
-	vQueueAddToRegistry(xCurrentPanQueue, "Current_Pan");
-
 	vQueueAddToRegistry(xTargetTiltQueue, "Target_Tilt");
-	vQueueAddToRegistry(xCurrentTiltQueue, "Current_Tilt");
 
 	vQueueAddToRegistry(xEventsQueue, "Event Queue");
-	vQueueAddToRegistry(xPayloadTransferQueue, "Payload_Tx_Queue");
+	vQueueAddToRegistry(xSystemTimeQueue, "System_Time_Queue");
+	vQueueAddToRegistry(xDataTransmitQueue, "Payload_Tx_Queue");
 }
 
 
-/// TASK FUNCTIONS ///
+/* ================= Task Functions  ================ */
+
 
 // Purpose
 // 		Check if new data has been received from DMA transfer
@@ -300,7 +289,6 @@ void Comms_InitQueues(void)
 // 		Can Have this check if the current total data processed is valid enough to begin decoding
 void vCommsRxData(void)
 {
-//	const TickType_t xBlockTime = pdMS_TO_TICKS( 500 );
 	uint32_t ulNotifiedValue;
 
 	while(true)
@@ -312,7 +300,6 @@ void vCommsRxData(void)
 		if (ulNotifiedValue == 0)
 		{
 			// TODO: Error Handling
-//			continue;
 		}
 		else
 		{
@@ -327,107 +314,70 @@ void vCommsRxData(void)
 	}
 }
 
-// Decodes the Payload and place its contents onto their respective queues
-// Receive Data from its own queue
-//void vCommsDecodePayload(void* pvParams)
+// Purpose
+// 		Decodes the Payload and place its contents onto their respective queues
+//		Receive Data from its own queue
 void vCommsDecodePayload()
 {
-	volatile COMMS_PayloadHandle payload = pvPortMalloc(sizeof(COMMS_PayloadHandle));
+	uint8_t size_data_messages;
+	uint8_t size_event_messages;
+	uint8_t data_messages_bytes_count;
+	uint8_t data_messages_count;
+
+	COMMS_Time_Message time_mssg = {0};
+
+	COMMS_Data_Message* data_mssg_head;
+	COMMS_Event_Message* evt_mssg_head;
+
+	COMMS_Data_Message targetPan;
+	COMMS_Data_Message targetTilt;
+	COMMS_Event_Message switch_rc;
+	COMMS_Event_Message switch_usb;
+
 	while (true)
 	{
-//		/// Read the data from the Queue if any exists
-//		// using portMAX_DELAY will allow this task to wait till data is on the queue
-//		// The task is put in the blocked stated till there is a message on the queue
-////		if ( xQueueReceive(xPayloadDecodeQueue, payload, portMAX_DELAY) != pdPASS )
-//		if ( xQueueReceive(xPayloadDecodeQueue, payload, portMAX_DELAY) != pdPASS )
-//		{
-//			continue;
-//		}
-
 		vTaskSuspend(NULL);	// SUSPEND SELF
 
 		// get size of Data Messages (in bytes)
-		uint8_t size_data_messages = UART_Buffer[1]; // includes 5 bytes of sys time (1 byte header + 4 bytes value)
-		uint8_t size_event_messages = UART_Buffer[2];
+		size_data_messages = UART_Buffer[1]; // includes 5 bytes of sys time (1 byte header + 4 bytes value)
+		size_event_messages = UART_Buffer[2];
+		data_messages_bytes_count = size_data_messages - sizeof(COMMS_Time_Message);
+		data_messages_count = data_messages_bytes_count / sizeof(COMMS_Data_Message);
 
-		// *********** extract the values from the payload **********
-		payload->start = UART_Buffer[0];
-		payload->size_data = UART_Buffer[1];
-		payload->size_events = UART_Buffer[2];
-
-		// extract the System Time
+		// **************** Extract the System Time **************** //
 		ptr = &UART_Buffer[3]; // points to first element of Sys time message struct
-		payload->sys_time.type = *(ptr++);
-		payload->sys_time.value = *(ptr++) << 24 | *(ptr++) << 16 | *(ptr++) << 8 | *(ptr++);
+		time_mssg.type = *(ptr++);
+		time_mssg.value = *(ptr++) << 24 | *(ptr++) << 16 | *(ptr++) << 8 | *(ptr++);
 
-		// extract Data Messages
-		uint8_t data_messages_bytes_count = size_data_messages - sizeof(COMMS_Time_Message);
-		uint8_t data_messages_count = data_messages_bytes_count / sizeof(COMMS_Data_Message);
+		// **************** Extract Start Of Data Messages **************** //
+		data_mssg_head = ptr;
+		ptr += data_messages_bytes_count;	// Move ptr past the data messages (point to events)
 
-		data_mssg_ptr = pvPortMalloc(data_messages_count * sizeof(*data_mssg_ptr));
-		payload->messages = data_mssg_ptr;
-		size_t size = data_messages_count * sizeof(*data_mssg_ptr);
-		if (data_mssg_ptr == NULL)
+		// **************** Extract Start Of Event Messages **************** //
+		evt_mssg_head = ptr;
+		ptr += size_event_messages;	// move past events and point to end byte
+
+		// **************** Place values on their respective queues **************** //
+		xQueueSend(xSystemTimeQueue, (void*)(&time_mssg), (TickType_t)0);
+
+		if (__COMMS_GetMessage(&targetPan, data_mssg_head, data_messages_count, COMMS_Target_Pan))
 		{
-			continue;
+			xQueueSend(xTargetPanQueue, (void*)(&targetPan), (TickType_t)0);
 		}
 
-		// fill memory with data messages
-		uint8_t data_count = 0;
-		while (data_count < data_messages_count) // remove the sys time message
+		if (__COMMS_GetMessage(&targetTilt, data_mssg_head, data_messages_count, COMMS_Target_Tilt))
 		{
-			COMMS_Header type = *(ptr++);
-			uint16_t value = *(ptr++) << 8 | *(ptr++);
-			data_mssg_ptr[data_count].type = type;
-			data_mssg_ptr[data_count].value = value;
-			data_count++;
+			xQueueSend(xTargetTiltQueue, (void*)(&targetTilt), (TickType_t)0);
 		}
 
-		// Extract event message
-		evt_mssg_ptr = pvPortMalloc(sizeof(COMMS_Header) * size_event_messages);
-		if (evt_mssg_ptr == NULL)
+		if (__COMMS_GetEvent(&switch_rc, evt_mssg_head, size_event_messages, COMMS_Switch_RC))
 		{
-			continue;
+			xQueueSend(xEventsQueue, (void*)(&switch_rc), (TickType_t)0);
 		}
 
-		payload->events = evt_mssg_ptr;
-
-		// fill allocated memory with event messages
-		uint8_t event_mssgs_count = 0;
-		while (event_mssgs_count < size_event_messages)
+		if (__COMMS_GetEvent(&switch_usb, evt_mssg_head, size_event_messages, COMMS_Switch_USB))
 		{
-			evt_mssg_ptr[event_mssgs_count] = *((COMMS_Header*)ptr);
-			ptr += sizeof(COMMS_Header);
-			event_mssgs_count++;
-		}
-
-		payload->stop = *ptr; // get stop byte
-
-		// Place the decoded messages onto their respective queues
-		COMMS_Data_Message* targetPan = __COMMS_GetMessage(data_mssg_ptr, data_messages_count, COMMS_Target_Pan);
-		COMMS_Data_Message* targetTilt =__COMMS_GetMessage(data_mssg_ptr, data_messages_count, COMMS_Target_Tilt);
-		COMMS_Data_Message* currentPan = __COMMS_GetMessage(data_mssg_ptr, data_messages_count, COMMS_Curr_Pan);
-		COMMS_Data_Message* currentTilt = __COMMS_GetMessage(data_mssg_ptr, data_messages_count, COMMS_Curr_Tilt);
-
-		// place on queue
-		if (targetPan != NULL)
-		{
-			xQueueSend(xTargetPanQueue, (void*)(targetPan), (TickType_t)0);
-		}
-
-		if (targetTilt != NULL)
-		{
-			xQueueSend(xTargetTiltQueue, (void*)(targetTilt), (TickType_t)0);
-		}
-
-		if (currentPan != NULL)
-		{
-			xQueueSend(xCurrentPanQueue, (void*)(currentPan), (TickType_t)0);
-		}
-
-		if (currentTilt != NULL)
-		{
-			xQueueSend(xCurrentTiltQueue, (void*)(currentTilt), (TickType_t)0);
+			xQueueSend(xEventsQueue, (void*)(&switch_usb), (TickType_t)0);
 		}
 
 		// Clear out the Buffer to allow for new input
@@ -436,49 +386,56 @@ void vCommsDecodePayload()
 	}
 }
 
-// Created when needed and discarded after its done
-// Receive the data from a queue and
-// task should exist forever
-// should send the data from the queue
+//
+// Purpose
+// 		Wraps type --COMMS_Message-- into type --COMMS_Payload-- and transmits via UART
+//		Receive Data from its own queue
 void vCommsTxData(void)
 {
-	const uint8_t start = COMMS_START;
-	const uint8_t stop = COMMS_STOP;
+	uint8_t events_size;
+	uint8_t time_mssg_size_h;
+	uint8_t data_message_size_h;
+	uint8_t total_messages_size_h;
 
-	COMMS_Messages_t queueData;
-	// Task is started whenever there is new data on its Queue
+	COMMS_Payload payload;
+	COMMS_Event_Message Default_Event = 0;
+	COMMS_Data_Message Default_Data_Message = {0};
+	COMMS_Message Default_Message = {0};
+
+	COMMS_Message queueData;
+
 	while (true)
 	{
-		/// Read the data from the Queue if any exists
 		// Queue could not retrieve the queue Data value OR queue is empty
-		if ( xQueueReceive(xPayloadTransferQueue, &queueData, portMAX_DELAY) != pdPASS )
+		if ( xQueueReceive(xDataTransmitQueue, &queueData, portMAX_DELAY) != pdPASS )
 		{
 			continue;
 		}
 
 		// ******** SIZE OF DATA (INCUDING HEADERS) in bytes ********
-		uint8_t time_mssg_size_h = sizeof(COMMS_Time_Message);
-		uint8_t data_message_size_h = sizeof(COMMS_Data_Message) * queueData.mssg_size;
-		uint8_t total_messages_size_h = data_message_size_h + time_mssg_size_h;
+		time_mssg_size_h = sizeof(COMMS_Time_Message);
+		data_message_size_h = sizeof(COMMS_Data_Message);
+		total_messages_size_h = (queueData.message.type != 0) ? data_message_size_h + time_mssg_size_h : time_mssg_size_h;
 
-		uint8_t events_size = (queueData.events != NULL) ? sizeof(queueData.events[0]) * queueData.evt_size : 0;
+		events_size = (queueData.event != Default_Event) ? 1 : 0;
 
-		COMMS_Payload payload = {
-				.start = start,
-				.size_data = total_messages_size_h, // size of all data messages (incl headers)
-				.size_events = events_size, // size of all event messages
-				.sys_time = { .type = COMMS_SysTime, .value = 1345678910 },// HAL_GetTick() }, // return number of milliseconds that have elapsed since startup
-				.messages = queueData.messages,
-				.events = queueData.events,
-				.stop = stop,
-		};
+		payload.start = COMMS_START;
+		payload.size_data = total_messages_size_h;
+		payload.size_events = events_size;
 
-		COMMS_PayloadHandle payload_handle = &payload;
-		uint16_t payload_size = sizeof(payload);
+		payload.sys_time.type = COMMS_SysTime;
+		payload.sys_time.value = HAL_GetTick();
+
+		payload.messages = (queueData.message.type != 0) ? &queueData.message : &Default_Data_Message;
+		payload.events = (queueData.event != Default_Event) ? &queueData.event : &Default_Event;
+		payload.stop = COMMS_STOP;
+
+		uint16_t payload_size = sizeof(COMMS_Payload) - 4;
 		uint8_t byteStream[payload_size];
 
-		__EncodePayload(payload_handle, queueData.mssg_size, queueData.evt_size, byteStream);
+		__EncodePayload(&payload, 1, 1, byteStream);
 
+		// Use a non-blocking call if possible (DMA)?
 		HAL_StatusTypeDef result_tx = HAL_UART_Transmit(&huart2, byteStream, payload_size, 10000);
 
 		if (result_tx != HAL_OK)

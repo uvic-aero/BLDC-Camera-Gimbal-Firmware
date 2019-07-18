@@ -1,9 +1,7 @@
 #pragma once
-#pragma pack(1)
 
 
 #define ARRAY_LEN(x)	(sizeof(x) / sizeof((x)[0]))
-
 
 typedef enum { false, true } bool;
 
@@ -11,28 +9,37 @@ typedef enum { false, true } bool;
 
 typedef uint8_t COMMS_Header;
 
-typedef struct {
+typedef uint8_t COMMS_Event_Message;
+
+typedef struct __attribute__((packed)) {
 	COMMS_Header type;
 	uint16_t value;
 } COMMS_Data_Message;
 
-typedef struct {
+
+typedef struct __attribute__((packed)) {
 	COMMS_Header type;
 	uint32_t value;
 } COMMS_Time_Message;
 
-typedef struct {
+typedef struct __attribute__((packed)) {
 	uint8_t start; // start byte sequence
 
 	uint8_t size_data; // size of the data messages with the headers (in bytes)
 	uint8_t size_events; // total size of all event messages (in bytes)
 
-	COMMS_Time_Message sys_time;
-	COMMS_Data_Message* messages;
-	COMMS_Header* events;
+	COMMS_Time_Message sys_time; // 5 bytes
+	COMMS_Data_Message* messages; // 3 bytes
+	COMMS_Event_Message* events; // 1 bytes
 
 	uint8_t stop; // stop byte sequence
 } COMMS_Payload;
+
+typedef struct __attribute__((packed)) Message {
+	COMMS_Event_Message event;
+	COMMS_Data_Message message;
+} COMMS_Message;
+
 
 typedef enum Data_Messages {
 	COMMS_START = 0b10101010,
@@ -49,13 +56,6 @@ typedef enum Event_Messages {
 	COMMS_Switch_USB = 0b10000010,
 } COMMS_Event_Message_Type;
 
-//COMMS_Data_Message messages[], uint8_t mssg_size, COMMS_Header events[], uint8_t evt_size
-typedef struct SendDataStrct {
-	uint8_t mssg_size;
-	uint8_t evt_size;
-	COMMS_Header* events;
-	COMMS_Data_Message* messages;
-} COMMS_Messages_t;
 // ***************** Struct Handles ***************
 
 typedef COMMS_Payload* COMMS_PayloadHandle;
@@ -63,32 +63,25 @@ typedef COMMS_Payload* COMMS_PayloadHandle;
 // ***************** Function prototypes  ***************
 
 bool __COMMS_IsValidDataStream(void);
-uint8_t __COMMS_GetPayloadLength(void);
-void __COMMS_ProcessData(const void* data, size_t len);
+
+void __COMMS_ProcessData(void* data, size_t len);
+
 char* __EncodePayload(COMMS_PayloadHandle packet, uint8_t mssg_size, uint8_t evt_size, uint8_t* txPackage);
 
+bool __COMMS_GetMessage(COMMS_Data_Message* messageRef, COMMS_Data_Message* head, uint8_t data_messages_count, COMMS_Data_Message_Type type);
+
+bool __COMMS_GetEvent(COMMS_Event_Message* event, COMMS_Event_Message* head, uint8_t events_count, COMMS_Event_Message_Type type);
+
+void __DMABuffer_to_UARTBuffer(void);
+
 void Comms_Init(void);
+
 void Comms_InitTasks(void);
+
 void Comms_InitQueues(void);
 
 void vCommsRxData(void);
-//void vCommsDecodePayload(void* pvParams);
-//void vCommsTxData(void* pvParam);
+
 void vCommsDecodePayload();
+
 void vCommsTxData(void);
-
-
-
-
-//// Sends data to SW
-//// returns true or false indicating if it succeeded
-bool SendData(COMMS_Data_Message messages[], uint8_t mssg_size, COMMS_Header events[], uint8_t evt_size);
-char* __EncodePayload(COMMS_PayloadHandle packet, uint8_t mssg_size, uint8_t evt_size, uint8_t* txPackage);
-
-// private functions
-void __COMMS_ProcessData(const void* data, size_t len);
-
-// public functions
-void COMMS_RX_Check(void);
-bool DecodePayload(COMMS_PayloadHandle payload);
-
