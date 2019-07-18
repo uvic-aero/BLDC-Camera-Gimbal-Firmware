@@ -24,9 +24,9 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
 // Standard Includes
 #include <stdio.h>
+//#include <stdlib.h>
 
 // Custom Includes
 // nothing here yet
@@ -34,6 +34,7 @@
 #include "task.h"
 #include "queue.h"
 #include "FreeRTOSConfig.h"
+#include "Comms.h"
 #include "gimbal.h"
 #include "encoder.h"
 #include "imu.h"
@@ -68,15 +69,28 @@ TIM_HandleTypeDef htim8;
 TIM_HandleTypeDef htim15;
 
 UART_HandleTypeDef huart2;
+DMA_HandleTypeDef hdma_usart2_rx;
 
 osThreadId defaultTaskHandle;
 /* USER CODE BEGIN PV */
+
+extern TaskHandle_t xTaskSerialRx;
+extern TaskHandle_t xTaskSerialTx;
+extern TaskHandle_t xTaskDecodePayload;
+
+extern QueueHandle_t xTargetPanQueue;
+extern QueueHandle_t xTargetTiltQueue;
+extern QueueHandle_t xSystemTimeQueue;
+
+extern QueueHandle_t xEventsQueue;
+extern QueueHandle_t xDataTransmitQueue;
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
+static void MX_DMA_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_I2C2_Init(void);
 static void MX_TIM1_Init(void);
@@ -116,6 +130,11 @@ int main(void)
 
   /* USER CODE BEGIN Init */
 
+  // https://www.freertos.org/RTOS-Cortex-M3-M4.html
+  // Needed to avoid having priority clashes when switching from ISR to task
+  HAL_NVIC_SetPriorityGrouping(NVIC_PRIORITYGROUP_4);
+
+
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -127,6 +146,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_I2C1_Init();
   MX_I2C2_Init();
   MX_TIM1_Init();
@@ -137,6 +157,13 @@ int main(void)
   MX_TIM15_Init();
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
+
+//  // Setup DMA to tranfer data from UART's internal FIFO onto DMA_RX_Buffer (global)
+//  HAL_UART_Receive_DMA(&huart2, DMA_RX_Buffer, DMA_RX_BUFFER_SIZE);
+//
+//  __HAL_DMA_DISABLE_IT(&hdma_usart2_rx, DMA_IT_HT); 	// Disable half transfer complete interrupt
+//  __HAL_UART_ENABLE_IT (&huart2, UART_IT_IDLE);		// Enable idle line interrupt
+  Comms_Init();
 
   /* USER CODE END 2 */
 
@@ -807,6 +834,21 @@ static void MX_USART2_UART_Init(void)
   /* USER CODE BEGIN USART2_Init 2 */
 
   /* USER CODE END USART2_Init 2 */
+
+}
+
+/** 
+  * Enable DMA controller clock
+  */
+static void MX_DMA_Init(void) 
+{
+  /* DMA controller clock enable */
+  __HAL_RCC_DMA1_CLK_ENABLE();
+
+  /* DMA interrupt init */
+  /* DMA1_Channel6_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel6_IRQn, 5, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel6_IRQn);
 
 }
 

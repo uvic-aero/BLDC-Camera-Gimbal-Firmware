@@ -24,6 +24,7 @@
 #include "cmsis_os.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "Comms.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -48,6 +49,8 @@
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN PFP */
+extern void COMMS_DMA_IrqHandler(DMA_HandleTypeDef *hdma, UART_HandleTypeDef *huart);
+extern void COMMS_USART2_IrqHandler(UART_HandleTypeDef *huart, DMA_HandleTypeDef *hdma);
 
 /* USER CODE END PFP */
 
@@ -64,6 +67,12 @@ extern TIM_HandleTypeDef htim15;
 extern TIM_HandleTypeDef htim6;
 
 /* USER CODE BEGIN EV */
+extern DMA_HandleTypeDef hdma_usart2_rx;
+extern UART_HandleTypeDef huart2;
+extern TIM_HandleTypeDef htim6;
+
+/// EXTERNAL VARIABLES (FROM Comms.h) ///
+extern TaskHandle_t xTaskSerialRx;
 
 /* USER CODE END EV */
 
@@ -218,6 +227,58 @@ void TIM8_CC_IRQHandler(void)
   /* USER CODE BEGIN TIM8_CC_IRQn 1 */
 
   /* USER CODE END TIM8_CC_IRQn 1 */
+}
+
+/**
+  * @brief This function handles DMA1 channel6 global interrupt.
+  */
+void DMA1_Channel6_IRQHandler(void)
+{
+  /* USER CODE BEGIN DMA1_Channel6_IRQn 0 */
+
+  /* USER CODE END DMA1_Channel6_IRQn 0 */
+  HAL_DMA_IRQHandler(&hdma_usart2_rx);
+  /* USER CODE BEGIN DMA1_Channel6_IRQn 1 */
+
+  // check for transfer complete interrupt
+  if (__HAL_DMA_GET_IT_SOURCE(&hdma_usart2_rx, DMA_IT_TC))
+  {
+	  __HAL_DMA_CLEAR_FLAG(&hdma_usart2_rx, DMA_FLAG_TC1);	// clear the interrupt flag
+	  BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+	  // Unblock Task via notification
+	  vTaskNotifyGiveFromISR(xTaskSerialRx, &xHigherPriorityTaskWoken);
+	  portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
+  }
+
+  /* USER CODE END DMA1_Channel6_IRQn 1 */
+}
+
+/**
+  * @brief This function handles USART2 global interrupt / USART2 wake-up interrupt through EXTI line 26.
+  */
+void USART2_IRQHandler(void)
+{
+  /* USER CODE BEGIN USART2_IRQn 0 */
+
+  /* USER CODE END USART2_IRQn 0 */
+  HAL_UART_IRQHandler(&huart2);
+  /* USER CODE BEGIN USART2_IRQn 1 */
+
+  // check for IDLE line interrupt and that there is new data in DMA buffer
+  if (__HAL_UART_GET_FLAG(&huart2, UART_FLAG_IDLE))
+  {
+	  __HAL_UART_CLEAR_FLAG(&huart2, UART_CLEAR_IDLEF);		// clear the idle interrupt flag
+
+	  BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+	  // Unblock Task via notification
+	  vTaskNotifyGiveFromISR(xTaskSerialRx, &xHigherPriorityTaskWoken);
+
+	  portYIELD_FROM_ISR( xHigherPriorityTaskWoken );
+
+  }
+
+  /* USER CODE END USART2_IRQn 1 */
 }
 
 /**
