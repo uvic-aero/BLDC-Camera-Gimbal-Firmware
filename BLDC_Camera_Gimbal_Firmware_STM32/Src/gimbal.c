@@ -36,7 +36,7 @@
 
 /* ============= GLOBAL RESOURCE VARIABLES =============== */
 
-static volatile IMU_t imu;
+static IMU_t imu;
 static RC_Input_t rcPitch;
 static RC_Input_t rcYaw;
 static RC_Input_t rcMode;
@@ -46,7 +46,12 @@ static RC_Input_t rcMode;
 
 QueueHandle_t xIMUQueue;
 QueueHandle_t xTargetQueue;
-QueueHandle_t xUartTxQueue;
+
+extern QueueHandle_t xEventsQueue;
+extern QueueHandle_t xTargetPanQueue;
+extern QueueHandle_t xTargetTiltQueue;
+extern QueueHandle_t xSystemTimeQueue;
+extern QueueHandle_t xDataTransmitQueue;
 
 /* =================== TASK HANDLES ====================== */
 /// IMU handler task handle
@@ -125,34 +130,18 @@ void vImuIRQHandler(void* pvParameters)
 	}
 }
 
-void vUartRxIRQHandler(void* pvParameters)
-{
-	while(true)
-	{
-		vTaskDelay(1000);
-	}
-}
-
-void vUartTxTask(void* pvParameters)
-{
-	while(true)
-	{
-		vTaskDelay(1000);
-	}
-}
-
 void vGimbalControlLoopTask(void* pvParameters)
 {
 	EulerAngles_t currCameraPos = {.pitch = 0.0, .yaw = 0.0, .roll = 0.0 };
 	EulerAngles_t targetCameraPos = {.pitch = 0.0, .yaw = 0.0, .roll = 0.0 }; // TODO: find real initial target for startup
-	EulerAngles_t currMotorPos = {.pitch = 0.0, .yaw = 0.0, .roll = 0.0 };
-	EulerAngles_t targetMotorPos = {.pitch = 0.0, .yaw = 0.0, .roll = 0.0 };
+	//EulerAngles_t currMotorPos = {.pitch = 0.0, .yaw = 0.0, .roll = 0.0 };
+	//EulerAngles_t targetMotorPos = {.pitch = 0.0, .yaw = 0.0, .roll = 0.0 };
 
 	while(true)
 	{
 		// synchronize to arrival of IMU data
 		xQueueReceive(xIMUQueue, &currCameraPos, portMAX_DELAY);
-		printf("%d, %d, %d\n", (int)(currCameraPos.pitch), (int)(currCameraPos.yaw), (int)(currCameraPos.roll));
+		//printf("%d, %d, %d\n", (int)(currCameraPos.pitch), (int)(currCameraPos.yaw), (int)(currCameraPos.roll));
 
 		// try reading from target queue, if there is nothing, move on, don't wait
 		// if there is something, the new target will be updated in targetCameraPos
@@ -163,7 +152,7 @@ void vGimbalControlLoopTask(void* pvParameters)
 		// currentMotorPos.roll = ...
 		// currentMotorPos.yaw = ...
 
-		targetMotorPos = Gimbal_CalcMotorTargetPos(currCameraPos, targetCameraPos, currMotorPos);
+		//targetMotorPos = Gimbal_CalcMotorTargetPos(currCameraPos, targetCameraPos, currMotorPos);
 		//printf("%d\n", targetMotorPos);
 
 		// set the motor positions here // EXAMPLE!!!!! Not necessarily how it will look!
@@ -178,11 +167,42 @@ void vGimbalControlLoopTask(void* pvParameters)
 
 void vTargetSettingTask(void* pvParameters)
 {
-	EulerAngles_t newTarget = {.pitch = 0.0, .yaw = 0.0, .roll = 0.0 };
+
+	COMMS_Data_Message targetPanDelta = {0};
+	COMMS_Data_Message targetTiltDelta = {0};
+	float targetPan = 0.0;
+	float targetTilt = 0.0;
+	EulerAngles_t targetPos = {0};
+
 	while(true)
 	{
 		vTaskDelay(1000);
-		xQueueSend(xTargetQueue, (void*)(&newTarget), (TickType_t)0);
+		// wake up and try to read from Pan queue
+		if ( xQueueReceive(xTargetPanQueue, (void*)&targetPanDelta, (TickType_t)0) == pdTRUE )
+		{
+			printf("Target pan delta: %d\n", (int16_t)(targetPanDelta.value));
+			// add target to delta
+			targetPan += (float)(targetPanDelta.value);
+		}
+
+		if ( xQueueReceive(xTargetTiltQueue, (void*)&targetTiltDelta, (TickType_t)0) == pdTRUE )
+		{
+			printf("Target tilt delta: %d\n", (int16_t)(targetTiltDelta.value));
+			targetTilt += (float)(targetTiltDelta.value);
+		}
+
+		// TODO: translation to target EulerAngle coords happens here
+		// TODO: saturate stuff
+
+		targetPos.yaw = targetPan;
+		targetPos.pitch = targetTilt;
+
+		// send to
+		//xQueueSend(xTargetQueue, (void*)&targetPos, (TickType_t)0);
+
+		// reset deltas to 0 to make sure it doesn't keep getting added
+		targetTiltDelta.value = 0.0;
+		targetPanDelta.value = 0.0;
 	}
 }
 
