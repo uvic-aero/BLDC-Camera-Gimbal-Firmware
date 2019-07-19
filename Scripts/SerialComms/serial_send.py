@@ -1,35 +1,42 @@
 import serial as s
 
 #set connection parameters
-port_num = 4
-com_port = 'COM' + str(port_num)
+port_num = 3
+com_port = 'COM3'
 baud_rate = 38400
 
 #create serial connection
 connection = s.Serial(com_port, baud_rate, timeout = None)
 
 #define bytes used in message
-start_byte = b'/xaa' #(0b10101010).to_bytes(1, byteorder = 'big')
-stop_byte = b'/xdb' #(0b11011011).to_bytes(1, byteorder = 'big')
-pan_header = b'/x04' #(0b00000100).to_bytes(1, byteorder = 'big')
-tilt_header = b'/x05' #(0b00000101).to_bytes(1, byteorder = 'big')
+start_byte = b'\xaa' #(0b10101010).to_bytes(1, byteorder = 'big')
+stop_byte = b'\xdb' #(0b11011011).to_bytes(1, byteorder = 'big')
+pan_header = b'\x04' #(0b00000100).to_bytes(1, byteorder = 'big')
+tilt_header = b'\x05' #(0b00000101).to_bytes(1, byteorder = 'big')
+systime_header = b'\x01'
 
-pan_data1 = b'/xff'
-pan_data2 = b'/x4c'
+pan_data1 = b'\xff'
+pan_data2 = b'\x4c'
 
-data_size_byte = b'/x03'
-event_size_byte = b'/x00'
+data_size_byte = b'\x08'
+event_size_byte = b'\x00'
 
-message[0] = start_byte
-message[1] = data_size_byte
-message[2] = event_size_byte
-message[3] = pan_header
-message[4] = pan_data1
-message[5] = pan_data2
-message[6] = stop_byte
+message = []
+message.append(start_byte)
+message.append(data_size_byte)
+message.append(event_size_byte)
+message.append(systime_header)
+message.append(b'\xf0')
+message.append(b'\xf1')
+message.append(b'\xf2')
+message.append(b'\xf3')
+message.append(pan_header)
+message.append(pan_data1)
+message.append(pan_data2)
+message.append(stop_byte)
 
 
-for i in range(7):
+for i in range(len(message)):
 	connection.write(message[i])
 
 connection.close()

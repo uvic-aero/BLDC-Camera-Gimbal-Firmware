@@ -171,7 +171,7 @@ void vTargetSettingTask(void* pvParameters)
 
 	COMMS_Message newMsg = {.message = {.type = COMMS_Curr_Tilt, .value = 0x8888,}, .event = 0,};
 
-	int16_t target_pan;
+	COMMS_Data_Message target_pan;
 
 	while(true)
 	{
@@ -181,6 +181,7 @@ void vTargetSettingTask(void* pvParameters)
 		// send data down the queue
 		//xQueueSend(xDataTransmitQueue, (void*)(&newMsg), portMAX_DELAY);
 		xQueueReceive(xTargetPanQueue, (void*)&target_pan, portMAX_DELAY);
+		printf("Target pan: %d\n", (int16_t)(target_pan.value));
 	}
 }
 
