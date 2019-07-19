@@ -167,21 +167,42 @@ void vGimbalControlLoopTask(void* pvParameters)
 
 void vTargetSettingTask(void* pvParameters)
 {
-	//EulerAngles_t newTarget = {.pitch = 0.0, .yaw = 0.0, .roll = 0.0 };
 
-	COMMS_Message newMsg = {.message = {.type = COMMS_Curr_Tilt, .value = 0x8888,}, .event = 0,};
-
-	COMMS_Data_Message target_pan;
+	COMMS_Data_Message targetPanDelta = {0};
+	COMMS_Data_Message targetTiltDelta = {0};
+	float targetPan = 0.0;
+	float targetTilt = 0.0;
+	EulerAngles_t targetPos = {0};
 
 	while(true)
 	{
-		vTaskDelay(5000);
-		//xQueueSend(xTargetQueue, (void*)(&newTarget), (TickType_t)0);
+		vTaskDelay(1000);
+		// wake up and try to read from Pan queue
+		if ( xQueueReceive(xTargetPanQueue, (void*)&targetPanDelta, (TickType_t)0) == pdTRUE )
+		{
+			printf("Target pan delta: %d\n", (int16_t)(targetPanDelta.value));
+			// add target to delta
+			targetPan += (float)(targetPanDelta.value);
+		}
 
-		// send data down the queue
-		//xQueueSend(xDataTransmitQueue, (void*)(&newMsg), portMAX_DELAY);
-		xQueueReceive(xTargetPanQueue, (void*)&target_pan, portMAX_DELAY);
-		printf("Target pan: %d\n", (int16_t)(target_pan.value));
+		if ( xQueueReceive(xTargetTiltQueue, (void*)&targetTiltDelta, (TickType_t)0) == pdTRUE )
+		{
+			printf("Target tilt delta: %d\n", (int16_t)(targetTiltDelta.value));
+			targetTilt += (float)(targetTiltDelta.value);
+		}
+
+		// TODO: translation to target EulerAngle coords happens here
+		// TODO: saturate stuff
+
+		targetPos.yaw = targetPan;
+		targetPos.pitch = targetTilt;
+
+		// send to
+		//xQueueSend(xTargetQueue, (void*)&targetPos, (TickType_t)0);
+
+		// reset deltas to 0 to make sure it doesn't keep getting added
+		targetTiltDelta.value = 0.0;
+		targetPanDelta.value = 0.0;
 	}
 }
 

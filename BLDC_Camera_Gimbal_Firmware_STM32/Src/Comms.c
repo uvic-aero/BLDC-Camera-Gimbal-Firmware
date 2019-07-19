@@ -155,15 +155,16 @@ char* __EncodePayload(COMMS_PayloadHandle packet, uint8_t mssg_size, uint8_t evt
 // 		Grabs a specified message type from the payload
 bool __COMMS_GetMessage(COMMS_Data_Message* messageRef, COMMS_Data_Message* head, uint8_t data_messages_count, COMMS_Data_Message_Type type)
 {
+	COMMS_Data_Message* local_head = head;
 	while (data_messages_count-- > 0)
 	{
-		if (head->type == (COMMS_Header)type)
+		if (local_head->type == (COMMS_Header)type)
 		{
-			messageRef->type = head->type;
-			messageRef->value = head->value << 8 | head->value >> 8; // reverse order of byte
+			messageRef->type = local_head->type;
+			messageRef->value = local_head->value << 8 | local_head->value >> 8; // reverse order of byte
 			return true;
 		}
-		head++;
+		local_head++;
 	}
 
 	// No message of the type --COMMS_Data_Message_Type-- exists
@@ -360,6 +361,40 @@ void vCommsDecodePayload(void* pvParams)
 		// **************** Place values on their respective queues **************** //
 		xQueueSend(xSystemTimeQueue, (void*)(&time_mssg), (TickType_t)0);
 
+		for (int i = 0; i < data_messages_count; i++)
+		{
+			switch(data_mssg_head[i].type)
+			{
+			case COMMS_Target_Pan:
+				targetPan.type = COMMS_Target_Pan;
+				targetPan.value = data_mssg_head[i].value << 8 | data_mssg_head[i].value >> 8;
+				xQueueSend(xTargetPanQueue, (void*)(&targetPan), (TickType_t)0);
+				break;
+
+			case COMMS_Target_Tilt:
+				targetTilt.type = COMMS_Target_Tilt;
+				targetTilt.value = data_mssg_head[i].value << 8 | data_mssg_head[i].value >> 8;
+				xQueueSend(xTargetTiltQueue, (void*)(&targetTilt), (TickType_t)0);
+				break;
+			}
+		}
+
+		for (int i = 0; i < size_event_messages; i++)
+		{
+			switch(evt_mssg_head[i])
+			{
+			case COMMS_Switch_RC:
+				switch_rc = COMMS_Switch_RC;
+				xQueueSend(xEventsQueue, (void*)(&switch_rc), (TickType_t)0);
+				break;
+
+			case COMMS_Switch_USB:
+				switch_usb = COMMS_Switch_USB;
+				xQueueSend(xEventsQueue, (void*)(&switch_usb), (TickType_t)0);
+				break;
+			}
+		}
+		/*
 		if (__COMMS_GetMessage(&targetPan, data_mssg_head, data_messages_count, COMMS_Target_Pan))
 		{
 			xQueueSend(xTargetPanQueue, (void*)(&targetPan), (TickType_t)0);
@@ -369,7 +404,8 @@ void vCommsDecodePayload(void* pvParams)
 		{
 			xQueueSend(xTargetTiltQueue, (void*)(&targetTilt), (TickType_t)0);
 		}
-
+		*/
+		/*
 		if (__COMMS_GetEvent(&switch_rc, evt_mssg_head, size_event_messages, COMMS_Switch_RC))
 		{
 			xQueueSend(xEventsQueue, (void*)(&switch_rc), (TickType_t)0);
@@ -379,6 +415,7 @@ void vCommsDecodePayload(void* pvParams)
 		{
 			xQueueSend(xEventsQueue, (void*)(&switch_usb), (TickType_t)0);
 		}
+		*/
 
 		// Clear out the Buffer to allow for new input
 		memset(UART_Buffer, 0, UART_BUFFER_SIZE);	// clear the array

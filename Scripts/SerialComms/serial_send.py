@@ -24,7 +24,7 @@ while(True):
 	data = []
 	print("Enter the number of data packets to be sent: ")
 	num_data_packets = int(input())
-	total_data_bytes = 3 * num_data_packets
+	total_data_bytes = 3 * num_data_packets + 5 # plus 5 for time!!!!!!!!!!!!
 	for i in range(num_data_packets):
 		print("Enter the type of data packet " + str(i) + ":")
 		type_prompt = input()
