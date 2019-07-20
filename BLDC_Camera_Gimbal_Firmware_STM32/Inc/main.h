@@ -151,11 +151,17 @@ void Error_Handler(void);
 #define MOTOR1_EN2_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 
+// GLOBAL CONTROL LOOP PERIOD AND FREQUENCY
+#define CTRL_PERIOD_S				(0.01f) //s
+#define CTRL_PERIOD_MS				(10)		// ms
+#define CTRL_FREQ_HZ				(100)	//Hz
+
+
 // IMU GLOBAL CONFIGS
 #define IMU_I2C_CHANNEL			hi2c2
 #define AXIS_IMU_ADDR			(0x68)
 #define BASE_IMU_ADDR			(0x69)
-#define IMU_DMP_FIFO_OUTPUT_RATE (100) // HZ: min 1, max 200
+#define IMU_DMP_FIFO_OUTPUT_RATE (CTRL_FREQ_HZ) // HZ: min 1, max 200
 #define AXIS_IMU_EXTI_LINE		EXTI15_10_IRQn
 
 

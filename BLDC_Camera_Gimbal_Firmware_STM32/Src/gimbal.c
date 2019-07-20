@@ -50,9 +50,12 @@ typedef struct PID_t
 	float error_diff;
 } PID_t;
 
+static float Gimbal_CalcPID(PID_t* pid, float target, float current);
+
 /* ============= GLOBAL RESOURCE VARIABLES =============== */
 
 extern TIM_HandleTypeDef htim16;
+
 static IMU_t        imu;
 static RC_Input_t   rcPitch;
 static RC_Input_t   rcYaw;
@@ -69,7 +72,7 @@ static Motor_t 	    rollMotor;
 
 QueueHandle_t xIMUQueue;
 QueueHandle_t xTargetQueue;
-QueueHandle_t xMotorSpeedQueue;
+QueueHandle_t xMotorControlQueue;
 
 extern QueueHandle_t xEventsQueue;
 extern QueueHandle_t xTargetPanQueue;
@@ -79,8 +82,6 @@ extern QueueHandle_t xDataTransmitQueue;
 
 /* =================== TASK HANDLES ====================== */
 /// IMU handler task handle
-TaskHandle_t xTaskIMU;
-TaskHandle_t xTaskUartRx;
 TaskHandle_t xTaskGimbalControl;
 TaskHandle_t xTaskTargetSet;
 TaskHandle_t xTaskMotor;
@@ -132,25 +133,20 @@ void Gimbal_InitSensors(void)
 
 void Gimbal_InitQueues(void)
 {
-	// IMU queue is of size 1, always overwrite
-	//xIMUQueue = xQueueCreate(1, sizeof(EulerAngles_t));
-	//vQueueAddToRegistry(xIMUQueue, "IMU_Q");
 
 	// Target queue will only be read sporadically because
 	// target update rate will be low relative to control loop rate
 	xTargetQueue = xQueueCreate(1, sizeof(EulerAngles_t));
 	vQueueAddToRegistry(xTargetQueue, "Target_Q");
 
-	xMotorSpeedQueue = xQueueCreate(1, sizeof(float));
-	vQueueAddToRegistry(xMotorSpeedQueue, "Motor_Q");
+	xMotorControlQueue = xQueueCreate(1, sizeof(float));
+	vQueueAddToRegistry(xMotorControlQueue, "Motor_Q");
 
-	/// do UART later
 }
 
 /// Init the tasks
 void Gimbal_InitTasks(void)
 {
-	//xTaskCreate(vImuIRQHandler,"IMUHandler",configMINIMAL_STACK_SIZE, NULL, PRIO_IMU, &xTaskIMU);
 	xTaskCreate(vRcModeHandler, "RcMode", configMINIMAL_STACK_SIZE, NULL, PRIO_RC, &xTaskRcMode);
 	xTaskCreate(vRcPitchHandler, "RcPitch", configMINIMAL_STACK_SIZE, NULL, PRIO_RC, &xTaskRcPitch);
 	xTaskCreate(vRcYawHandler, "RcYaw", configMINIMAL_STACK_SIZE, NULL, PRIO_RC, &xTaskRcYaw);
@@ -161,24 +157,6 @@ void Gimbal_InitTasks(void)
 }
 
 /* ================== TASK FUNCTIONS ===================== */
-/// IMU interrupt handler
-/*
-void vImuIRQHandler(void* pvParameters)
-{
-	// initialize the IMU, this needs to go here to prevent the fifo from starting interrupts
-	IMU_Start(&imu);
-
-	while(true)
-	{
-		// wait for IMU interrupt
-		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-		IMU_GetQuaternion(&imu);
-		IMU_CalcEulerAngles(&imu);
-
-		xQueueSend(xIMUQueue, (void*)&(imu.pos), (TickType_t)0);
-	}
-}
-*/
 
 void vGimbalControlLoopTask(void* pvParameters)
 {
@@ -189,9 +167,11 @@ void vGimbalControlLoopTask(void* pvParameters)
 
 	EulerAngles_t temp = {.pitch = 0.0, .yaw = 0.0, .roll = 0.0 };
 
-	//PID_t pitchPID 	= 	{.kp = 1.0, .kd = 0.0, .ki = 0.0, .error_new = 0.0, .error_old = 0.0, .error_acc = 0.0, .error_diff = 0.0 };
+	PID_t pitchPID 	= 	{.kp = 1.0, .kd = 0.0, .ki = 0.0, .error_new = 0.0, .error_old = 0.0, .error_acc = 0.0, .error_diff = 0.0 };
 	PID_t yawPID 	=	{.kp = YAW_MOTOR_KP, .kd = YAW_MOTOR_KD, .ki = 0.0, .error_new = 0.0, .error_old = 0.0, .error_acc = 0.0, .error_diff = 0.0 };
-	//PID_t rollPID 	=	{.kp = 1.0, .kd = 0.0, .ki = 0.0, .error_new = 0.0, .error_old = 0.0, .error_acc = 0.0, .error_diff = 0.0 };
+	PID_t rollPID 	=	{.kp = 1.0, .kd = 0.0, .ki = 0.0, .error_new = 0.0, .error_old = 0.0, .error_acc = 0.0, .error_diff = 0.0 };
+
+	float pitchCtrl, yawCtrl, rollCtrl;
 
 	IMU_Start(&imu);
 
@@ -199,6 +179,7 @@ void vGimbalControlLoopTask(void* pvParameters)
 
 	while(true)
 	{
+		// wait for wakeup by IMU interrupt, obtain the current position
 		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
 		IMU_GetQuaternion(&imu);
@@ -206,11 +187,6 @@ void vGimbalControlLoopTask(void* pvParameters)
 
 		currCameraPos = imu.pos;
 
-		// synchronize to arrival of IMU data
-		//xQueueReceive(xIMUQueue, &currCameraPos, portMAX_DELAY);
-		//printf("%d, %d, %d\n", (int)(currCameraPos.pitch), (int)(currCameraPos.yaw), (int)(currCameraPos.roll));
-		//vTaskDelay(1000);
-		//vTaskDelay(20); // every 20 ms = 50 Hz
 		// try reading from target queue, if there is nothing, move on, don't wait
 		// if there is something, the new target will be updated in targetCameraPos
 		if ( xQueueReceive(xTargetQueue, &temp, (TickType_t)0) == pdTRUE )
@@ -223,47 +199,18 @@ void vGimbalControlLoopTask(void* pvParameters)
 		/// Get encoder values
 		//currMotorPos.pitch 	= Angles_Normalize180( Poll_Encoder(&pitchEncoder) );
 		currMotorPos.yaw 	= Angles_Normalize180( Poll_Encoder(&yawEncoder) );
-
-		/*
-		if (encoder_counter == 0)
-			printf("Encoder val: %d\n", (int)(currMotorPos.yaw));
-
-		encoder_counter = (encoder_counter + 1 ) % 100;
-		*/
-
 		//currMotorPos.roll 	= Angles_Normalize180( Poll_Encoder(&rollEncoder) );
 
+		// Calculate the Inverse Kinematic target motor positions
 		targetMotorPos = Gimbal_CalcMotorTargetPos(currCameraPos, targetCameraPos, currMotorPos);
-		//printf("%d\n", targetMotorPos);
 
-		// save previous PID error values
-		//pitchPID.error_old = pitchPID.error_new;
-		yawPID.error_old = yawPID.error_new;
-		//rollPID.error_old = rollPID.error_new;
+		// Calculate the PID controller outputs for each motor
+		pitchCtrl 	= Gimbal_CalcPID(&pitchPID, targetMotorPos.pitch, currMotorPos.pitch);
+		yawCtrl 	= Gimbal_CalcPID(&yawPID, targetMotorPos.yaw, currMotorPos.yaw);
+		rollCtrl	= Gimbal_CalcPID(&rollPID, targetMotorPos.roll, currMotorPos.roll);
 
-		// get new PID error values
-		//pitchPID.error_new = Angles_CalcDist(targetMotorPos.pitch, currMotorPos.pitch);
-		yawPID.error_new = Angles_CalcDist(targetMotorPos.yaw, currMotorPos.yaw);
-		//rollPID.error_new = Angles_CalcDist(targetMotorPos.roll, currMotorPos.roll);
-
-		// calculate accumulation error
-		//pitchPID.error_acc += pitchPID.error_new; // TODO: could saturate here or do some sort of attenuation
-		yawPID.error_acc += yawPID.error_new; // TODO: could saturate here or do some sort of attenuation
-		//rollPID.error_acc += pitchPID.error_new; // TODO: could saturate here or do some sort of attenuation
-
-		// calculate error differential
-		//pitchPID.error_diff = Angles_CalcDist(pitchPID.error_new, pitchPID.error_old);
-		yawPID.error_diff = yawPID.error_new - yawPID.error_old;
-		//rollPID.error_diff = Angles_CalcDist(rollPID.error_new, rollPID.error_old);
-
-		//float pitchSpeed 	= pitchPID.kp * pitchPID.error_new + pitchPID.ki * pitchPID.error_acc + pitchPID.kd * pitchPID.error_diff;
-		float yawSpeed 		= yawPID.kp * yawPID.error_new + yawPID.ki * yawPID.error_acc + yawPID.kd * yawPID.error_diff;
-		//float rollSpeed 	= rollPID.kp * rollPID.error_new + rollPID.ki * rollPID.error_acc + rollPID.kd * rollPID.error_diff;
-
-		//printf("Yaw speed: %d\n", (int)yawSpeed);
-
-		//xQueueSend(xMotorSpeedQueue, (void*)&yawSpeed, (TickType_t)0);
-		xQueueOverwrite(xMotorSpeedQueue, (void*)&yawSpeed);
+		// send to motor // TODO: other motors than yaw
+		xQueueOverwrite(xMotorControlQueue, (void*)&yawCtrl);
 	}
 }
 
@@ -369,13 +316,12 @@ void vMotorCommutationTask(void* pvParameters)
 	do
 	{
 		// check to see if theres a new PID output
-		xQueueReceive(xMotorSpeedQueue, (void*)&speed, (TickType_t)0);
+		xQueueReceive(xMotorControlQueue, (void*)&speed, (TickType_t)0);
 
 		Gimbal_CalcMotorParams(speed, &delay, &pulse, &dir);
 
 		Set_Motor_Parameters(&yawMotor, dir, pulse);
 		Commutate_Motor(&yawMotor);
-		//vTaskDelay(delay);
 
 		// start interrupt for delay and wait for notification from TIM7 ISR
 		__HAL_TIM_SET_COUNTER(&htim16, 0xffff - (uint16_t)(delay & 0x0000FFFF));
@@ -392,30 +338,19 @@ void vMotorCommutationTask(void* pvParameters)
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
-	// Handoff to IMU handler task
+	// Handoff to Control loop task
 	if (GPIO_Pin == AXIS_IMU_INT_Pin)
 	{
-		//HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5); /// TODO: temporary, remove this
 		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-		//vTaskNotifyGiveFromISR( xTaskIMU, &xHigherPriorityTaskWoken );
 		vTaskNotifyGiveFromISR( xTaskGimbalControl, &xHigherPriorityTaskWoken );
 		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 	}
 }
 
-//static unsigned int led_counter = 0;
-/// for the microsecond motor commutation timer
 void MOTOR_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
 	if (htim->Instance == TIM16)
 	{
-		/*
-		if (led_counter == 0)
-		{
-			HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-		}
-		led_counter = (led_counter + 1) % 100;
-		*/
 		HAL_TIM_Base_Stop_IT(&htim16);
 		// yield to motor commutation task
 		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
@@ -451,6 +386,26 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
 }
 
 /* =============== CONTROL MATH FUNCTIONS ================ */
+
+static float Gimbal_CalcPID(PID_t* pid, float target, float current)
+{
+	//track error of (t - 1)
+	pid->error_old = pid->error_new;
+	// calc new error for time t
+	pid->error_new = Angles_CalcDist(target, current);
+	// accumulate integral
+	// TODO: saturate here or exponential roll-off
+	pid->error_acc += CTRL_PERIOD_S * pid->error_new;
+	// calc derivative of error
+	pid->error_diff = (pid->error_new - pid->error_old) / CTRL_PERIOD_S;
+
+	float control_output =
+			+ (pid->kp * pid->error_new)
+			+ (pid->ki * pid->error_acc)
+			+ (pid->kd * pid->error_diff);
+
+	return control_output;
+}
 
 static uint8_t Gimbal_CalcMotorPulse(float speed)
 {
