@@ -279,29 +279,31 @@ void vTargetSettingTask(void* pvParameters)
 
 	while(true)
 	{
-		vTaskDelay(1000);
+		vTaskDelay(100);
 		// wake up and try to read from Pan queue
 		if ( xQueueReceive(xTargetPanQueue, (void*)&targetPanDelta, (TickType_t)0) == pdTRUE )
 		{
-			printf("Target pan delta: %d\n", (int16_t)(targetPanDelta.value));
+			//printf("Target pan delta: %d\n", (int16_t)(targetPanDelta.value));
 			// add target to delta
 			targetPan += (float)(targetPanDelta.value);
 		}
 
 		if ( xQueueReceive(xTargetTiltQueue, (void*)&targetTiltDelta, (TickType_t)0) == pdTRUE )
 		{
-			printf("Target tilt delta: %d\n", (int16_t)(targetTiltDelta.value));
+			//printf("Target tilt delta: %d\n", (int16_t)(targetTiltDelta.value));
 			targetTilt += (float)(targetTiltDelta.value);
 		}
 
 		// TODO: translation to target EulerAngle coords happens here
-		// TODO: saturate stuff
 
 		targetPos.yaw = targetPan;
 		targetPos.pitch = targetTilt;
 
+		if (abs(targetTilt) > 80.0)
+			targetTilt = copysignf(80.0, targetTilt);
+
 		// send to
-		//xQueueSend(xTargetQueue, (void*)&targetPos, (TickType_t)0);
+		xQueueSend(xTargetQueue, (void*)&targetPos, (TickType_t)0);
 
 		// reset deltas to 0 to make sure it doesn't keep getting added
 		targetTiltDelta.value = 0.0;
@@ -517,7 +519,7 @@ EulerAngles_t Gimbal_CalcMotorTargetPos(EulerAngles_t currIMU, EulerAngles_t tar
 	EulerAngles_t targMotorPos = {.pitch = 0.0, .yaw = 0.0, .roll = 0.0,};
 
 #if ENABLED(MODE_1AXIS)
-	float errYaw	=	Angles_CalcDist(targIMU.yaw,  -currIMU.pitch); // MOTOR YAW MAPPED TO IMU PITCH TEMPORARILY!!!!!!!!!!!!!!!!
+	float errYaw	=	Angles_CalcDist(targIMU.pitch,  -currIMU.pitch); // MOTOR YAW MAPPED TO IMU PITCH TEMPORARILY!!!!!!!!!!!!!!!!
 
 	if (fabs(errYaw) < 3.0)
 		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);

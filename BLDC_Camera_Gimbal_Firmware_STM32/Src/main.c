@@ -161,13 +161,6 @@ int main(void)
   MX_TIM16_Init();
   /* USER CODE BEGIN 2 */
 
-//  // Setup DMA to tranfer data from UART's internal FIFO onto DMA_RX_Buffer (global)
-//  HAL_UART_Receive_DMA(&huart2, DMA_RX_Buffer, DMA_RX_BUFFER_SIZE);
-//
-//  __HAL_DMA_DISABLE_IT(&hdma_usart2_rx, DMA_IT_HT); 	// Disable half transfer complete interrupt
-//  __HAL_UART_ENABLE_IT (&huart2, UART_IT_IDLE);		// Enable idle line interrupt
-  Comms_Init();
-
   /* USER CODE END 2 */
 
   /* USER CODE BEGIN RTOS_MUTEX */
