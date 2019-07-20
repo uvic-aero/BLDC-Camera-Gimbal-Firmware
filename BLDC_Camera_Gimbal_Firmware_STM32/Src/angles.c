@@ -35,7 +35,7 @@ float Angles_Normalize360(float theta)
 		theta = theta - 360.0;
 
 	while ( theta < 0.0 )
-		theta = theta + 360;
+		theta = theta + 360.0;
 
 	return theta;
 

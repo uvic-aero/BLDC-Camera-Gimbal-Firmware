@@ -34,7 +34,7 @@ void Gimbal_InitTasks(void);
 
 /* ================== TASK FUNCTIONS ===================== */
 /// IMU interrupt handler
-void vImuIRQHandler(void* pvParameters);
+//void vImuIRQHandler(void* pvParameters);
 
 /// Handler for UART receive interrupt
 void vUartRxIRQHandler(void* pvParameters);
@@ -47,6 +47,9 @@ void vGimbalControlLoopTask(void* pvParameters);
 
 /// Target setting task
 void vTargetSettingTask(void* pvParameters);
+
+/// Motor commutation function
+void vMotorCommutationTask(void* pvParameters);
 
 /// RC Pitch input task
 void vRcPitchHandler(void* pvParameters);
@@ -61,7 +64,15 @@ void vRcModeHandler(void* pvParameters);
 /* ============= HAL IRQ HANDLER CALLBACKS =============== */
 /// defined in the source file, declared in various system headers
 
+
+/// motor commutation callback
+void MOTOR_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
+
 /* =============== CONTROL MATH FUNCTIONS ================ */
+/// Convert speed in degrees per second to three motor parameters
+/// @input: speed is pass-by-value
+/// @output: delay_out, pulse_out, and dir_out are pass-by-ref outputs
+void Gimbal_CalcMotorParams(float speed_in, uint32_t* delay_out, uint8_t* pulse_out, uint8_t* dir_out);
 /// Wrapper for the "Get desired motor position" logic
 /// This is wrapped since it will change for 2 vs 3 axis
 EulerAngles_t Gimbal_CalcMotorTargetPos(EulerAngles_t currIMU, EulerAngles_t targIMU, EulerAngles_t currMotorPos);

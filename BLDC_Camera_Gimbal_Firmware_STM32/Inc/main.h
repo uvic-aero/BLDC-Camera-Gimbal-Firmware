@@ -150,16 +150,24 @@ void Error_Handler(void);
 
 // ENCODER GLOBAL CONFIGS
 #define ENCODER_I2C_CHANNEL		hi2c1
+#define ENCODER_PITCH_I2C_ADDR 	(0x2)
+#define ENCODER_YAW_I2C_ADDR	(0x3)
+#define ENCODER_ROLL_I2C_ADDR	(0x1)
 
 // CONTROL LOOP GLOBAL CONFIGS
 #define ENABLED(__mode__)		((__mode__) == 1)
 #define DISABLED(__mode__)		((__mode__) == 0)
 
-#define MODE_2AXIS				(1)
+#define MODE_1AXIS				(1)
+#define MODE_2AXIS				(0)
 #define MODE_3AXIS				(0)
 
-#if MODE_2AXIS == MODE_3AXIS
-#error Gimbal cannot be in both 3-axis mode and 2-axis mode simultaneously; choose ONE!
+#if ENABLED(MODE_1AXIS) && (ENABLED(MODE_2AXIS) || ENABLED(MODE_3AXIS))
+#error Gimbal cannot be in both 1-axis mode, and 2-axis mode, or 3-axis mode simultaneously; choose ONE!
+#elif ENABLED(MODE_2AXIS) && (ENABLED(MODE_1AXIS) || ENABLED(MODE_3AXIS))
+#error Gimbal cannot be in both 1-axis mode, and 2-axis mode, or 3-axis mode simultaneously; choose ONE!
+#elif ENABLED(MODE_3AXIS) && (ENABLED(MODE_1AXIS) || ENABLED(MODE_2AXIS))
+#error Gimbal cannot be in both 1-axis mode, and 2-axis mode, or 3-axis mode simultaneously; choose ONE!
 #endif
 
 // if in MODE_2AXIS, which 2 axes are being used?
@@ -169,6 +177,21 @@ void Error_Handler(void);
 #define MODE_2AXIS_YAW_ROLL			(0)
 #endif
 
+// Control constants
+#define MOTOR_MAX_SPEED					(720.0f)   // degrees/sec
+#define MOTOR_MIN_SPEED					(2.04f)		// degrees/sec
+#define MOTOR_CONVERSION_CONSTANT		(133930.0f)	// to convert speed (degrees per second) to delay (us)
+#define MOTOR_POLE_PAIRS				(7)			// dimensionless
+#define MOTOR_MAX_COMMUTATION_DELAY		(0x0000ffff) 	// us
+#define MOTOR_MIN_COMMUTATION_DELAY		(186) 		// us
+#define MOTOR_MIN_PULSE					(100)
+#define MOTOR_MAX_PULSE					(255)
+#define MOTOR_PULSE_CURVE_VAL			(2.0)
+#define MOTOR_PULSE_RANGE				(MOTOR_MAX_PULSE - MOTOR_MIN_PULSE)
+
+#define YAW_MOTOR_KP					(8.0f)
+#define YAW_MOTOR_KD					(0.0f)
+#define YAW_MOTOR_KI					(0.0f)
 
 /* USER CODE END Private defines */
 
