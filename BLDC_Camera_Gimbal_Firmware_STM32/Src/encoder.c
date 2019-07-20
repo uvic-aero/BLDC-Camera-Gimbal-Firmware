@@ -6,13 +6,14 @@
  */
 
 #include "encoder.h"
+#include "angles.h"
 
 void Encoder_Init(Encoder_Handle_t encoder, Encoder_Identity_t identity, uint16_t pinconfig)
 {
 	encoder->identity = identity;
 	encoder->i2c = &hi2c1;
 
-	encoder->zeroPosition = 0x0;
+	encoder->zeroPosition = 0.0;
 
 	encoder->A1A2PinConfig = pinconfig;
 	encoder->address = (ENCODER_ADDRESS_BASE | encoder->A1A2PinConfig);
@@ -31,15 +32,17 @@ float Poll_Encoder(Encoder_Handle_t encoder)
 
 	encoder->angleRaw = (encoder->dataHigh << 6) | (encoder->dataLow & 0x3F);
 
+	/*
 	uint16_t angleSum = (encoder->angleRaw + encoder->zeroPosition);
 	uint16_t angleCorrected = angleSum > 0x3FFF ? (angleSum - 0x3FFF) : angleSum;
+	*/
 
-	encoder->angleFloat = ((float)angleCorrected / 16383.0) * 360.0;
+	encoder->angleFloat = Angles_Normalize360( ((((float)(encoder->angleRaw))/ 16383.0) * 360.0) - encoder->zeroPosition );
 
 	return encoder->angleFloat;
 }
 
-void Set_Zero_Position(Encoder_Handle_t encoder, uint16_t zeropos)
+void Set_Zero_Position(Encoder_Handle_t encoder, float zeropos)
 {
 	encoder->zeroPosition = zeropos;
 }

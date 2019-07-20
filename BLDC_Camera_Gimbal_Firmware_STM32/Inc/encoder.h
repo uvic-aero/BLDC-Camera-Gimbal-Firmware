@@ -32,7 +32,7 @@ typedef struct Encoder_t
 	Encoder_Identity_t identity;
 	I2C_HandleTypeDef* i2c;
 
-	uint16_t zeroPosition;
+	float zeroPosition;
 
 	uint16_t A1A2PinConfig;
 	uint16_t address;
@@ -49,6 +49,6 @@ typedef Encoder_t* Encoder_Handle_t;
 
 void Encoder_Init(Encoder_Handle_t encoder, Encoder_Identity_t identity, uint16_t pinconfig);
 float Poll_Encoder(Encoder_Handle_t encoder);
-void Set_Zero_Position(Encoder_Handle_t encoder, uint16_t zeropos);
+void Set_Zero_Position(Encoder_Handle_t encoder, float zeropos);
 
 #endif /* ENCODER_H_ */
