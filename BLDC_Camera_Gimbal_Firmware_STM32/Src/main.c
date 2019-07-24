@@ -58,6 +58,8 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
+ADC_HandleTypeDef hadc1;
+
 I2C_HandleTypeDef hi2c1;
 I2C_HandleTypeDef hi2c2;
 
@@ -101,6 +103,7 @@ static void MX_TIM4_Init(void);
 static void MX_TIM8_Init(void);
 static void MX_TIM15_Init(void);
 static void MX_USART2_UART_Init(void);
+static void MX_ADC1_Init(void);
 static void MX_TIM16_Init(void);
 void StartDefaultTask(void const * argument);
 
@@ -158,6 +161,7 @@ int main(void)
   MX_TIM8_Init();
   MX_TIM15_Init();
   MX_USART2_UART_Init();
+  MX_ADC1_Init();
   MX_TIM16_Init();
   /* USER CODE BEGIN 2 */
 
@@ -186,7 +190,7 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
-  Gimbal_Init();
+  //Gimbal_Init();
   /* USER CODE END RTOS_THREADS */
 
   /* Start scheduler */
@@ -244,9 +248,10 @@ void SystemClock_Config(void)
   PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART2|RCC_PERIPHCLK_I2C1
                               |RCC_PERIPHCLK_I2C2|RCC_PERIPHCLK_TIM1
                               |RCC_PERIPHCLK_TIM15|RCC_PERIPHCLK_TIM16
-                              |RCC_PERIPHCLK_TIM8|RCC_PERIPHCLK_TIM2
-                              |RCC_PERIPHCLK_TIM34;
+                              |RCC_PERIPHCLK_TIM8|RCC_PERIPHCLK_ADC12
+                              |RCC_PERIPHCLK_TIM2|RCC_PERIPHCLK_TIM34;
   PeriphClkInit.Usart2ClockSelection = RCC_USART2CLKSOURCE_PCLK1;
+  PeriphClkInit.Adc12ClockSelection = RCC_ADC12PLLCLK_DIV1;
   PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_HSI;
   PeriphClkInit.I2c2ClockSelection = RCC_I2C2CLKSOURCE_HSI;
   PeriphClkInit.Tim1ClockSelection = RCC_TIM1CLK_HCLK;
@@ -259,6 +264,69 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
+}
+
+/**
+  * @brief ADC1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_ADC1_Init(void)
+{
+
+  /* USER CODE BEGIN ADC1_Init 0 */
+
+  /* USER CODE END ADC1_Init 0 */
+
+  ADC_MultiModeTypeDef multimode = {0};
+  ADC_ChannelConfTypeDef sConfig = {0};
+
+  /* USER CODE BEGIN ADC1_Init 1 */
+
+  /* USER CODE END ADC1_Init 1 */
+  /** Common config 
+  */
+  hadc1.Instance = ADC1;
+  hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
+  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
+  hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
+  hadc1.Init.ContinuousConvMode = DISABLE;
+  hadc1.Init.DiscontinuousConvMode = DISABLE;
+  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
+  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
+  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
+  hadc1.Init.NbrOfConversion = 1;
+  hadc1.Init.DMAContinuousRequests = DISABLE;
+  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
+  hadc1.Init.LowPowerAutoWait = DISABLE;
+  hadc1.Init.Overrun = ADC_OVR_DATA_OVERWRITTEN;
+  if (HAL_ADC_Init(&hadc1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Configure the ADC multi-mode 
+  */
+  multimode.Mode = ADC_MODE_INDEPENDENT;
+  if (HAL_ADCEx_MultiModeConfigChannel(&hadc1, &multimode) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /** Configure Regular Channel 
+  */
+  sConfig.Channel = ADC_CHANNEL_2;
+  sConfig.Rank = ADC_REGULAR_RANK_1;
+  sConfig.SingleDiff = ADC_SINGLE_ENDED;
+  sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
+  sConfig.OffsetNumber = ADC_OFFSET_NONE;
+  sConfig.Offset = 0;
+  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN ADC1_Init 2 */
+
+  /* USER CODE END ADC1_Init 2 */
+
 }
 
 /**
@@ -903,68 +971,68 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5|MOTOR2_EN1_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, MOTOR1_EN1_Pin|MOTOR2_NRESET_Pin|MOTOR3_EN3_Pin|UNUSED_PC12_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, MOTOR1_EN1_Pin|MOTOR1_EN3_Pin|MOTOR2_NRESET_Pin|MOTOR2_EN2_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, UNUSED_PA5_Pin|UNUSED_PA7_Pin|MOTOR3_EN1_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, MOTOR2_EN3_Pin|MOTOR3_EN3_Pin|MOTOR3_EN2_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, MOTOR2_EN3_Pin|MOTOR2_EN2_Pin|MOTOR2_EN1_Pin|UNUSED_PB11_Pin 
+                          |UNUSED_PB12_Pin|UNUSED_PB13_Pin|MOTOR3_NRESET_Pin|MOTOR1_NRESET_Pin 
+                          |MOTOR1_EN3_Pin|MOTOR1_EN2_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(MOTOR3_EN1_GPIO_Port, MOTOR3_EN1_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(MOTOR3_EN1D2_GPIO_Port, MOTOR3_EN1D2_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : CURR_MON_5V_Pin BASE_IMU_INT_Pin MOTOR3_NRESET_Pin */
-  GPIO_InitStruct.Pin = CURR_MON_5V_Pin|BASE_IMU_INT_Pin|MOTOR3_NRESET_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  /*Configure GPIO pins : MOTOR1_EN1_Pin MOTOR2_NRESET_Pin MOTOR3_EN3_Pin UNUSED_PC12_Pin */
+  GPIO_InitStruct.Pin = MOTOR1_EN1_Pin|MOTOR2_NRESET_Pin|MOTOR3_EN3_Pin|UNUSED_PC12_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : CURR_MON_12V_Pin MOTOR2_NFAULT_Pin */
-  GPIO_InitStruct.Pin = CURR_MON_12V_Pin|MOTOR2_NFAULT_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : PA5 MOTOR2_EN1_Pin */
-  GPIO_InitStruct.Pin = GPIO_PIN_5|MOTOR2_EN1_Pin;
+  /*Configure GPIO pins : UNUSED_PA5_Pin UNUSED_PA7_Pin MOTOR3_EN1_Pin */
+  GPIO_InitStruct.Pin = UNUSED_PA5_Pin|UNUSED_PA7_Pin|MOTOR3_EN1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : MOTOR1_EN1_Pin MOTOR1_EN3_Pin MOTOR2_NRESET_Pin MOTOR2_EN2_Pin */
-  GPIO_InitStruct.Pin = MOTOR1_EN1_Pin|MOTOR1_EN3_Pin|MOTOR2_NRESET_Pin|MOTOR2_EN2_Pin;
+  /*Configure GPIO pins : MOTOR2_NFAULT_Pin MOTOR3_NFAULT_Pin MOTOR3_EN2_Pin */
+  GPIO_InitStruct.Pin = MOTOR2_NFAULT_Pin|MOTOR3_NFAULT_Pin|MOTOR3_EN2_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : MOTOR2_EN3_Pin MOTOR2_EN2_Pin MOTOR2_EN1_Pin UNUSED_PB11_Pin 
+                           UNUSED_PB12_Pin UNUSED_PB13_Pin MOTOR3_NRESET_Pin MOTOR1_NRESET_Pin 
+                           MOTOR1_EN3_Pin MOTOR1_EN2_Pin */
+  GPIO_InitStruct.Pin = MOTOR2_EN3_Pin|MOTOR2_EN2_Pin|MOTOR2_EN1_Pin|UNUSED_PB11_Pin 
+                          |UNUSED_PB12_Pin|UNUSED_PB13_Pin|MOTOR3_NRESET_Pin|MOTOR1_NRESET_Pin 
+                          |MOTOR1_EN3_Pin|MOTOR1_EN2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : AXIS_IMU_INT_Pin */
-  GPIO_InitStruct.Pin = AXIS_IMU_INT_Pin;
+  /*Configure GPIO pins : AXIS_IMU_INT_Pin BASE_IMU_INT_Pin */
+  GPIO_InitStruct.Pin = AXIS_IMU_INT_Pin|BASE_IMU_INT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(AXIS_IMU_INT_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : MOTOR1_NFAULT_Pin MOTOR1_EN2_Pin MOTOR1_NRESET_Pin MOTOR3_NFAULT_Pin */
-  GPIO_InitStruct.Pin = MOTOR1_NFAULT_Pin|MOTOR1_EN2_Pin|MOTOR1_NRESET_Pin|MOTOR3_NFAULT_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : MOTOR2_EN3_Pin MOTOR3_EN3_Pin MOTOR3_EN2_Pin */
-  GPIO_InitStruct.Pin = MOTOR2_EN3_Pin|MOTOR3_EN3_Pin|MOTOR3_EN2_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : MOTOR3_EN1_Pin */
-  GPIO_InitStruct.Pin = MOTOR3_EN1_Pin;
+  /*Configure GPIO pin : MOTOR3_EN1D2_Pin */
+  GPIO_InitStruct.Pin = MOTOR3_EN1D2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(MOTOR3_EN1_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(MOTOR3_EN1D2_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : MOTOR1_NFAULT_Pin */
+  GPIO_InitStruct.Pin = MOTOR1_NFAULT_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(MOTOR1_NFAULT_GPIO_Port, &GPIO_InitStruct);
 
   /**/
   HAL_I2CEx_EnableFastModePlus(SYSCFG_CFGR1_I2C_PB6_FMP);
@@ -992,7 +1060,8 @@ void StartDefaultTask(void const * argument)
   /* USER CODE BEGIN 5 */
 	while(1)
 	{
-		osDelay(100000);
+		printf("Hello Hardware!");
+		osDelay(1000);
 	}
   /* USER CODE END 5 */ 
 }
