@@ -139,8 +139,8 @@ void Error_Handler(void);
 #define BASE_IMU_INT_EXTI_IRQn EXTI15_10_IRQn
 #define UNUSED_PC12_Pin GPIO_PIN_12
 #define UNUSED_PC12_GPIO_Port GPIOC
-#define MOTOR3_EN1D2_Pin GPIO_PIN_2
-#define MOTOR3_EN1D2_GPIO_Port GPIOD
+#define UNUSED_PD2_Pin GPIO_PIN_2
+#define UNUSED_PD2_GPIO_Port GPIOD
 #define SWO_Pin GPIO_PIN_3
 #define SWO_GPIO_Port GPIOB
 #define MOTOR1_NRESET_Pin GPIO_PIN_4

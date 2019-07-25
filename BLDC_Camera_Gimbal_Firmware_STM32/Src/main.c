@@ -88,6 +88,10 @@ extern QueueHandle_t xSystemTimeQueue;
 extern QueueHandle_t xEventsQueue;
 extern QueueHandle_t xDataTransmitQueue;
 
+Motor_t motor1;
+Motor_t motor2;
+Motor_t motor3;
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -191,6 +195,9 @@ int main(void)
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   //Gimbal_Init();
+  Motor_Init(&motor1, YAW_MOTOR);
+  Motor_Init(&motor2, PITCH_MOTOR);
+  Motor_Init(&motor3, ROLL_MOTOR);
   /* USER CODE END RTOS_THREADS */
 
   /* Start scheduler */
@@ -971,7 +978,8 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, MOTOR1_EN1_Pin|MOTOR2_NRESET_Pin|MOTOR3_EN3_Pin|UNUSED_PC12_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, MOTOR1_EN1_Pin|MOTOR2_NRESET_Pin|MOTOR3_EN3_Pin|MOTOR3_EN2_Pin 
+                          |UNUSED_PC12_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(GPIOA, UNUSED_PA5_Pin|UNUSED_PA7_Pin|MOTOR3_EN1_Pin, GPIO_PIN_RESET);
@@ -982,10 +990,12 @@ static void MX_GPIO_Init(void)
                           |MOTOR1_EN3_Pin|MOTOR1_EN2_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(MOTOR3_EN1D2_GPIO_Port, MOTOR3_EN1D2_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(UNUSED_PD2_GPIO_Port, UNUSED_PD2_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : MOTOR1_EN1_Pin MOTOR2_NRESET_Pin MOTOR3_EN3_Pin UNUSED_PC12_Pin */
-  GPIO_InitStruct.Pin = MOTOR1_EN1_Pin|MOTOR2_NRESET_Pin|MOTOR3_EN3_Pin|UNUSED_PC12_Pin;
+  /*Configure GPIO pins : MOTOR1_EN1_Pin MOTOR2_NRESET_Pin MOTOR3_EN3_Pin MOTOR3_EN2_Pin 
+                           UNUSED_PC12_Pin */
+  GPIO_InitStruct.Pin = MOTOR1_EN1_Pin|MOTOR2_NRESET_Pin|MOTOR3_EN3_Pin|MOTOR3_EN2_Pin 
+                          |UNUSED_PC12_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -998,8 +1008,8 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : MOTOR2_NFAULT_Pin MOTOR3_NFAULT_Pin MOTOR3_EN2_Pin */
-  GPIO_InitStruct.Pin = MOTOR2_NFAULT_Pin|MOTOR3_NFAULT_Pin|MOTOR3_EN2_Pin;
+  /*Configure GPIO pins : MOTOR2_NFAULT_Pin MOTOR3_NFAULT_Pin */
+  GPIO_InitStruct.Pin = MOTOR2_NFAULT_Pin|MOTOR3_NFAULT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
@@ -1021,12 +1031,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : MOTOR3_EN1D2_Pin */
-  GPIO_InitStruct.Pin = MOTOR3_EN1D2_Pin;
+  /*Configure GPIO pin : UNUSED_PD2_Pin */
+  GPIO_InitStruct.Pin = UNUSED_PD2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(MOTOR3_EN1D2_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(UNUSED_PD2_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : MOTOR1_NFAULT_Pin */
   GPIO_InitStruct.Pin = MOTOR1_NFAULT_Pin;
@@ -1036,6 +1046,9 @@ static void MX_GPIO_Init(void)
 
   /**/
   HAL_I2CEx_EnableFastModePlus(SYSCFG_CFGR1_I2C_PB6_FMP);
+
+  /**/
+  HAL_I2CEx_EnableFastModePlus(SYSCFG_CFGR1_I2C_PB9_FMP);
 
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI15_10_IRQn, 6, 0);
@@ -1058,10 +1071,26 @@ void StartDefaultTask(void const * argument)
 {
 
   /* USER CODE BEGIN 5 */
+
+	Set_Operation_Mode(&motor1, COMMUTATE);
+	Set_Operation_Mode(&motor2, COMMUTATE);
+	Set_Operation_Mode(&motor3, COMMUTATE);
+
+	Set_Motor_Parameters(&motor1, TURN_CCW, 255);
+	Set_Motor_Parameters(&motor2, TURN_CCW, 255);
+	Set_Motor_Parameters(&motor3, TURN_CCW, 255);
+
+	HAL_GPIO_WritePin(MOTOR1_NRESET_GPIO_Port, MOTOR1_NRESET_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(MOTOR2_NRESET_GPIO_Port, MOTOR2_NRESET_Pin, GPIO_PIN_SET);
+	HAL_GPIO_WritePin(MOTOR3_NRESET_GPIO_Port, MOTOR3_NRESET_Pin, GPIO_PIN_SET);
+
 	while(1)
 	{
-		printf("Hello Hardware!");
-		osDelay(1000);
+		osDelay(10);
+		//printf("C\n");
+		Commutate_Motor(&motor1);
+		Commutate_Motor(&motor2);
+		Commutate_Motor(&motor3);
 	}
   /* USER CODE END 5 */ 
 }
