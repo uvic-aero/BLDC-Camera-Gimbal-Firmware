@@ -19,11 +19,7 @@ static COMMS_Message messages[NUMBER_OF_MESSAGES];
 
 const int buttonPin = 2;     // the number of the pushbutton pin
 bool newData = false;
-// testing
-int8_t messages_ptr = 0;
-
-// variables will change:
-//volatile int buttonState = 0;         // variable for reading the pushbutton status
+int messages_ptr = 0;
 
 void setup() {
     memset((void*)UART_Buffer, 0, UART_BUFFER_SIZE);
@@ -36,8 +32,8 @@ void setup() {
 }
 
 void loop() {
-    // Nothing here!
     _USART_RX();
+    
     //SendNextPayload();
     //delay(2000);
 }
@@ -93,7 +89,6 @@ void SetupSendingBuffer(void)
 void SendNextPayload(void)
 {
     SendMessage(messages[messages_ptr++]);
-    //Serial.println();
     messages_ptr = messages_ptr % NUMBER_OF_MESSAGES;
 }
 
@@ -105,7 +100,7 @@ void SendNextPayload(void)
         b. hitting a button will iterate through list of messages to send via UART as a Payload type
         c. utilize encoder logic
   ======================================================================================================== */
-
+// Didnt use the external button interrupt. But the pieces are already in place, just need to wire it up
 void pin_ISR() {
     SendNextPayload();
 }
@@ -135,7 +130,7 @@ COMMS_Messages_Struct DecodeAndSendPayload(uint8_t* UART_Buffer)
     COMMS_Event_Message switch_rc = { 0 };
     COMMS_Event_Message switch_usb = { 0 };
 
-    COMMS_Message mssg_echo = { 0 };
+    COMMS_Message mssg_echo;
 
     // get size of Data Messages (in bytes)
     size_data_messages = UART_Buffer[1]; // includes 5 bytes of sys time (1 byte header + 4 bytes value)
@@ -156,11 +151,12 @@ COMMS_Messages_Struct DecodeAndSendPayload(uint8_t* UART_Buffer)
     evt_mssg_head = (COMMS_Event_Message*)ptr;
     ptr += size_event_messages;	// move past events and point to end byte
 
-    // **************** Place values on their respective queues **************** //
-
+    // **************** Extract messages and events and echo them back via serial **************** //
+    // messages are recieved in Big-endian format and converted to little endian
     for (int i = 0; i < data_messages_count; i++)
     {
         mssg_echo = { 0 };
+        
         switch (data_mssg_head[i].type)
         {
         case COMMS_Target_Pan:
@@ -201,6 +197,7 @@ COMMS_Messages_Struct DecodeAndSendPayload(uint8_t* UART_Buffer)
     for (int i = 0; i < size_event_messages; i++)
     {
         mssg_echo = { 0 };
+       
         switch (evt_mssg_head[i])
         {
         case COMMS_Switch_RC:
@@ -235,7 +232,7 @@ COMMS_Messages_Struct DecodeAndSendPayload(uint8_t* UART_Buffer)
 
 void SendMessage(COMMS_Message message)
 {
-    uint16_t payload_size = sizeof(COMMS_Payload) - 4;
+    uint16_t payload_size = sizeof(COMMS_Payload) - 4; // this is ALWAYS 13 bytes
     uint8_t byteStream[13];
 
     COMMS_Payload payload = ConvertToPayload(message);
@@ -301,8 +298,7 @@ void EncodePayload(COMMS_PayloadHandle packet, uint8_t mssg_size, uint8_t evt_si
     *block = packet->size_data;							block++;
     *block = packet->size_events;						block++;
 
-    // little endian (M3)
-    //	high byte eg: 0x12 34 56 78 => 0x12
+    // converting from little-endian to big-endian
 
     // serializing sys_time (32bit/4bytes)
     *block = *((char*) & (packet->sys_time.type));		    block++;
@@ -339,19 +335,6 @@ void EncodePayload(COMMS_PayloadHandle packet, uint8_t mssg_size, uint8_t evt_si
 ========================================================================================================== */
 void _USART_RX()
 {
-/**
- * Receives COMMS_Target_Pan => 0x55 0x44 | COMMS_Target_Tilt => 0xDC 0xCD
- *  // Start => 					0xAA
-	// Size of data messages => 	0x0B
-	// Size of event messages => 	0x05
-	// Sys time mssg => 			(header)0x01 (value) 0x50 0x35 0x6E 0x3E
-	// data messages => 			(header)0x04 (value)0x55 0x44
-	//				   				(header)0x05 (value)0xDC 0xCD
-	// Events 		=> 				(header)0x81 (header)0x55 (header)0x66 (header)0x77 (header)0x82
-	// Stop 		=> 				0xDB
- *
- * 0xAA 0x0B 0x05 0x01 0x50 0x35 0x6E 0x3E 0x04 0x55 0x44 0x05 0xDC 0xCD 0x81 0x55 0x66 0x77 0x82 0xDB
- */
     COMMS_Message mssg1 = { 0 };
     COMMS_Message mssg2 = { 0 };
     COMMS_Message mssg3 = { 0 };
@@ -367,38 +350,9 @@ void _USART_RX()
 
     Serial.readBytes((uint8_t*)UART_Buffer, UART_BUFFER_SIZE);
 
-    //while(Serial.availableForWrite())
-    COMMS_Messages_Struct rxMssgs = DecodeAndSendPayload((uint8_t*)UART_Buffer);
-
+    DecodeAndSendPayload((uint8_t*)UART_Buffer);
 
     // clear uart buffer
     memset((void*)UART_Buffer, 0, (size_t)UART_BUFFER_SIZE);
 }
 
-void showNewData() 
-{
-    if (newData == true) {
-        uint8_t idx = 0;
-        Serial.println("This just in ... ");
-        while (idx < UART_BUFFER_SIZE)
-        {
-            Serial.print(UART_Buffer[idx]);
-        }
-        Serial.println();
-        //Serial.println(UART_Buffer);
-        newData = false;
-    }
-}
-
-void PrintSentByteStream(uint8_t buffer[], size_t size)
-{
-    Serial.println();
-    Serial.println("Printing sent data");
-    uint8_t idx = 0;
-    while (idx < size)
-    {
-        Serial.print((uint8_t)buffer[idx++]);
-        Serial.print("  |  ");
-    }
-    Serial.println();
-}
