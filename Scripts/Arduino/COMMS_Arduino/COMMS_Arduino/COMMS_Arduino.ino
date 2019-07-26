@@ -19,6 +19,7 @@ static COMMS_Message messages[NUMBER_OF_MESSAGES];
 
 const int buttonPin = 2;     // the number of the pushbutton pin
 bool newData = false;
+// testing
 int8_t messages_ptr = 0;
 
 // variables will change:
@@ -32,14 +33,13 @@ void setup() {
     // Attach an interrupt to the ISR vector
     attachInterrupt(digitalPinToInterrupt(buttonPin), pin_ISR, CHANGE);
     Serial.begin(38400);
-    //Serial.println("<Arduino is ready>");
 }
 
 void loop() {
     // Nothing here!
     _USART_RX();
     //SendNextPayload();
-    //delay(5000);
+    //delay(2000);
 }
 
 void SetupSendingBuffer(void)
@@ -116,7 +116,7 @@ void pin_ISR() {
     2. Setup decode fuctionality
     ========================================================================================================== */
 
-COMMS_Messages_Struct DecodePayload(uint8_t* UART_Buffer)
+COMMS_Messages_Struct DecodeAndSendPayload(uint8_t* UART_Buffer)
 {
     uint8_t size_data_messages;
     uint8_t size_event_messages;
@@ -128,10 +128,14 @@ COMMS_Messages_Struct DecodePayload(uint8_t* UART_Buffer)
     COMMS_Data_Message* data_mssg_head;
     COMMS_Event_Message* evt_mssg_head;
 
-    COMMS_Data_Message targetPan;
-    COMMS_Data_Message targetTilt;
-    COMMS_Event_Message switch_rc;
-    COMMS_Event_Message switch_usb;
+    COMMS_Data_Message targetPan = { 0 };
+    COMMS_Data_Message targetTilt = { 0 };
+    COMMS_Data_Message currentPan = { 0 };
+    COMMS_Data_Message currentTilt = { 0 };
+    COMMS_Event_Message switch_rc = { 0 };
+    COMMS_Event_Message switch_usb = { 0 };
+
+    COMMS_Message mssg_echo = { 0 };
 
     // get size of Data Messages (in bytes)
     size_data_messages = UART_Buffer[1]; // includes 5 bytes of sys time (1 byte header + 4 bytes value)
@@ -156,37 +160,71 @@ COMMS_Messages_Struct DecodePayload(uint8_t* UART_Buffer)
 
     for (int i = 0; i < data_messages_count; i++)
     {
+        mssg_echo = { 0 };
         switch (data_mssg_head[i].type)
         {
         case COMMS_Target_Pan:
             targetPan.type = COMMS_Target_Pan;
             targetPan.value = data_mssg_head[i].value << 8 | data_mssg_head[i].value >> 8;
+            
+            mssg_echo.message = targetPan;
+            SendMessage(mssg_echo);
             break;
 
         case COMMS_Target_Tilt:
             targetTilt.type = COMMS_Target_Tilt;
             targetTilt.value = data_mssg_head[i].value << 8 | data_mssg_head[i].value >> 8;
+           
+            mssg_echo.message = targetTilt;
+            SendMessage(mssg_echo);
+            break;
+
+        case COMMS_Curr_Pan:
+            currentPan.type = COMMS_Curr_Pan;
+            currentPan.value = data_mssg_head[i].value << 8 | data_mssg_head[i].value >> 8;
+
+            mssg_echo.message = currentPan;
+            SendMessage(mssg_echo);
+            break;
+
+        case COMMS_Curr_Tilt:
+            currentTilt.type = COMMS_Curr_Tilt;
+            currentTilt.value = data_mssg_head[i].value << 8 | data_mssg_head[i].value >> 8;
+
+            mssg_echo.message = currentTilt;
+            SendMessage(mssg_echo);
             break;
         }
+        delay(500);
     }
 
     for (int i = 0; i < size_event_messages; i++)
     {
+        mssg_echo = { 0 };
         switch (evt_mssg_head[i])
         {
         case COMMS_Switch_RC:
             switch_rc = COMMS_Switch_RC;
+
+            mssg_echo.event = COMMS_Switch_RC;
+            SendMessage(mssg_echo);
             break;
 
         case COMMS_Switch_USB:
             switch_usb = COMMS_Switch_USB;
+            
+            mssg_echo.event = COMMS_Switch_USB;
+            SendMessage(mssg_echo);
             break;
         }
+        delay(500);
     }
 
-    COMMS_Messages_Struct returnVal = { targetPan, targetTilt, switch_rc, switch_usb };
+    COMMS_Messages_Struct returnVal = { targetPan, targetTilt, currentPan, currentTilt, switch_rc, switch_usb };
     return returnVal;
 }
+
+
 
 /*
     3. Setup Transmit functionality
@@ -197,14 +235,13 @@ COMMS_Messages_Struct DecodePayload(uint8_t* UART_Buffer)
 
 void SendMessage(COMMS_Message message)
 {
-    COMMS_Payload payload = ConvertToPayload(message);
     uint16_t payload_size = sizeof(COMMS_Payload) - 4;
     uint8_t byteStream[13];
 
+    COMMS_Payload payload = ConvertToPayload(message);
     EncodePayload(&payload, 1, 1, byteStream);
-
     Serial.write(byteStream, 13);
-    //PrintSentByteStream(byteStream, 13);
+    //Serial.flush();
 }
 
 COMMS_Payload ConvertToPayload(COMMS_Message message)
@@ -315,12 +352,10 @@ void _USART_RX()
  *
  * 0xAA 0x0B 0x05 0x01 0x50 0x35 0x6E 0x3E 0x04 0x55 0x44 0x05 0xDC 0xCD 0x81 0x55 0x66 0x77 0x82 0xDB
  */
-    static bool rxInProgress = false;
-    static uint8_t index = 0;
-
     COMMS_Message mssg1 = { 0 };
     COMMS_Message mssg2 = { 0 };
     COMMS_Message mssg3 = { 0 };
+    static int count = 0;
     
     uint8_t _byte;
     COMMS_Messages_Struct result;
@@ -331,59 +366,13 @@ void _USART_RX()
     }
 
     Serial.readBytes((uint8_t*)UART_Buffer, UART_BUFFER_SIZE);
-    //while (Serial.available() > 0 && newData == false)
-    //{
-    //    _byte = Serial.read();
 
-    //    if (_byte == COMMS_START)
-    //    {
-    //        rxInProgress = true;
-    //        if (_byte != COMMS_STOP)
-    //        {
-    //            UART_Buffer[index++] = _byte;
-    //            if (index >= UART_BUFFER_SIZE)
-    //            {
-    //                index = UART_BUFFER_SIZE - 1; // place at last element of buffer
-    //            }
-    //        }
-    //        else {
-    //            rxInProgress = false;
-    //            index = 0;
-    //            newData = true;
-    //        }
-    //    }
-    //    else if (_byte == COMMS_START)
-    //    {
-    //        rxInProgress = true;
-    //    }
-    //}
+    //while(Serial.availableForWrite())
+    COMMS_Messages_Struct rxMssgs = DecodeAndSendPayload((uint8_t*)UART_Buffer);
 
-    COMMS_Messages_Struct rxMssgs = DecodePayload((uint8_t*)UART_Buffer);
-    mssg1.event = rxMssgs.switch_rc;
-    mssg2.event = 0; mssg2.message = rxMssgs.targetPan;
-    mssg3.event = rxMssgs.switch_usb; mssg3.message = rxMssgs.targetTilt;
-
-    // 0XAA (d_size)0X05 (evt_size)0X01 (sys_time)0X01  0x12 0x34 0x56 0x79 (d_mssg) 0x00  0x00 0x00 (evt) 0x81 (stop) 0xDB
-    // 0XAA 0X05 0X01 0X01 0x12 0x34 0x56 0x79 0X00 0X00 0X00 0X81 0XDB  <==== EXPECTED 
-    // 0XAA 0X05 0X01 0X01 0X12 0X34 0X56 0X79 0X00 0X00 0X00 0X81 0XDB  <==== ACTUAL
-    //   
-    SendMessage(mssg1);
-    delay(2000);
-
-    // 0XAA (d_size)0X08 (evt_size)0X00 (sys_time)0X01  0x12 0x34 0x56 0x79 (d_mssg) 0x04  0x55 0x44 (evt) 0x00 (stop) 0xDB
-    // 0XAA 0X08 0X00 0X01 0x12 0x34 0x56 0x79 0X04 0x55 0x44 0X00 0XDB  <==== EXPECTED 
-    // 0XAA 0X08 0X00 0X01 0X12 0X34 0X56 0X79 0X04 0X55 0X44 0X00 0XDB  <==== ACTUAL
-    SendMessage(mssg2);
-    delay(2000);
-
-    // 0XAA (d_size)0X08 (evt_size)0X01 (sys_time)0X01  0x12 0x34 0x56 0x79 (d_mssg) 0x05  0xDC 0xCD (evt) 0x82 (stop) 0xDB
-    // 0XAA 0X08 0X01 0X01 0x12 0x34 0x56 0x79 0X05 0xDC 0xCD 0X82 0XDB  <==== EXPECTED 
-    // 0XAA 0X08 0X01 0X01 0X12 0X34 0X56 0X79 0X05 0XDC 0XCD 0X82 0XDB  <==== ACTUAL
-    SendMessage(mssg3);
-    delay(2000);
 
     // clear uart buffer
-    memset((void*)UART_Buffer, 0, UART_BUFFER_SIZE);
+    memset((void*)UART_Buffer, 0, (size_t)UART_BUFFER_SIZE);
 }
 
 void showNewData() 

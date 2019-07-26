@@ -55,6 +55,8 @@ typedef enum Event_Messages {
 typedef struct __attribute__((packed)) {
     COMMS_Data_Message targetPan;
     COMMS_Data_Message targetTilt;
+    COMMS_Data_Message currentPan;
+    COMMS_Data_Message currentTilt;
     COMMS_Event_Message switch_rc;
     COMMS_Event_Message switch_usb;
 } COMMS_Messages_Struct;
@@ -73,4 +75,4 @@ COMMS_Payload ConvertToPayload(COMMS_Message mssg);
 
 void EncodePayload(COMMS_PayloadHandle packet, uint8_t mssg_size, uint8_t evt_size, uint8_t* txPackage);
 
-COMMS_Messages_Struct DecodePayload(uint8_t* UART_Buffer);
+COMMS_Messages_Struct DecodeAndSendPayload(uint8_t* UART_Buffer);
