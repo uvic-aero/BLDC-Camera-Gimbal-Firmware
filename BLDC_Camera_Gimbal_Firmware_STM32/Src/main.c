@@ -58,8 +58,6 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-ADC_HandleTypeDef hadc1;
-
 I2C_HandleTypeDef hi2c1;
 I2C_HandleTypeDef hi2c2;
 
@@ -88,9 +86,7 @@ extern QueueHandle_t xSystemTimeQueue;
 extern QueueHandle_t xEventsQueue;
 extern QueueHandle_t xDataTransmitQueue;
 
-Motor_t motor1;
-Motor_t motor2;
-Motor_t motor3;
+Encoder_t encoder;
 
 /* USER CODE END PV */
 
@@ -107,12 +103,23 @@ static void MX_TIM4_Init(void);
 static void MX_TIM8_Init(void);
 static void MX_TIM15_Init(void);
 static void MX_USART2_UART_Init(void);
-static void MX_ADC1_Init(void);
 static void MX_TIM16_Init(void);
 void StartDefaultTask(void const * argument);
 
 /* USER CODE BEGIN PFP */
 
+void vTestTask(void* pvParams)
+{
+	Encoder_Init(&encoder, PITCH_ENCODER, 0x3);
+	float angle = 0.0;
+
+	while(true)
+	{
+		angle = Poll_Encoder(&encoder);
+		printf("Angle: %d\n", (int)angle);
+		vTaskDelay(1000);
+	}
+}
 
 /* USER CODE END PFP */
 
@@ -165,7 +172,6 @@ int main(void)
   MX_TIM8_Init();
   MX_TIM15_Init();
   MX_USART2_UART_Init();
-  MX_ADC1_Init();
   MX_TIM16_Init();
   /* USER CODE BEGIN 2 */
 
@@ -195,9 +201,7 @@ int main(void)
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   //Gimbal_Init();
-  Motor_Init(&motor1, YAW_MOTOR);
-  Motor_Init(&motor2, PITCH_MOTOR);
-  Motor_Init(&motor3, ROLL_MOTOR);
+  xTaskCreate(vTestTask, "Test", configMINIMAL_STACK_SIZE, NULL, 5, NULL);
   /* USER CODE END RTOS_THREADS */
 
   /* Start scheduler */
@@ -255,10 +259,9 @@ void SystemClock_Config(void)
   PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART2|RCC_PERIPHCLK_I2C1
                               |RCC_PERIPHCLK_I2C2|RCC_PERIPHCLK_TIM1
                               |RCC_PERIPHCLK_TIM15|RCC_PERIPHCLK_TIM16
-                              |RCC_PERIPHCLK_TIM8|RCC_PERIPHCLK_ADC12
-                              |RCC_PERIPHCLK_TIM2|RCC_PERIPHCLK_TIM34;
+                              |RCC_PERIPHCLK_TIM8|RCC_PERIPHCLK_TIM2
+                              |RCC_PERIPHCLK_TIM34;
   PeriphClkInit.Usart2ClockSelection = RCC_USART2CLKSOURCE_PCLK1;
-  PeriphClkInit.Adc12ClockSelection = RCC_ADC12PLLCLK_DIV1;
   PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_HSI;
   PeriphClkInit.I2c2ClockSelection = RCC_I2C2CLKSOURCE_HSI;
   PeriphClkInit.Tim1ClockSelection = RCC_TIM1CLK_HCLK;
@@ -271,69 +274,6 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-}
-
-/**
-  * @brief ADC1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_ADC1_Init(void)
-{
-
-  /* USER CODE BEGIN ADC1_Init 0 */
-
-  /* USER CODE END ADC1_Init 0 */
-
-  ADC_MultiModeTypeDef multimode = {0};
-  ADC_ChannelConfTypeDef sConfig = {0};
-
-  /* USER CODE BEGIN ADC1_Init 1 */
-
-  /* USER CODE END ADC1_Init 1 */
-  /** Common config 
-  */
-  hadc1.Instance = ADC1;
-  hadc1.Init.ClockPrescaler = ADC_CLOCK_ASYNC_DIV1;
-  hadc1.Init.Resolution = ADC_RESOLUTION_12B;
-  hadc1.Init.ScanConvMode = ADC_SCAN_DISABLE;
-  hadc1.Init.ContinuousConvMode = DISABLE;
-  hadc1.Init.DiscontinuousConvMode = DISABLE;
-  hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
-  hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
-  hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc1.Init.NbrOfConversion = 1;
-  hadc1.Init.DMAContinuousRequests = DISABLE;
-  hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
-  hadc1.Init.LowPowerAutoWait = DISABLE;
-  hadc1.Init.Overrun = ADC_OVR_DATA_OVERWRITTEN;
-  if (HAL_ADC_Init(&hadc1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Configure the ADC multi-mode 
-  */
-  multimode.Mode = ADC_MODE_INDEPENDENT;
-  if (HAL_ADCEx_MultiModeConfigChannel(&hadc1, &multimode) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /** Configure Regular Channel 
-  */
-  sConfig.Channel = ADC_CHANNEL_2;
-  sConfig.Rank = ADC_REGULAR_RANK_1;
-  sConfig.SingleDiff = ADC_SINGLE_ENDED;
-  sConfig.SamplingTime = ADC_SAMPLETIME_1CYCLE_5;
-  sConfig.OffsetNumber = ADC_OFFSET_NONE;
-  sConfig.Offset = 0;
-  if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN ADC1_Init 2 */
-
-  /* USER CODE END ADC1_Init 2 */
-
 }
 
 /**
@@ -352,7 +292,7 @@ static void MX_I2C1_Init(void)
 
   /* USER CODE END I2C1_Init 1 */
   hi2c1.Instance = I2C1;
-  hi2c1.Init.Timing = 0x00000001;
+  hi2c1.Init.Timing = 0x2000090E;
   hi2c1.Init.OwnAddress1 = 0;
   hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
@@ -376,9 +316,6 @@ static void MX_I2C1_Init(void)
   {
     Error_Handler();
   }
-  /** I2C Fast mode Plus enable 
-  */
-  __HAL_SYSCFG_FASTMODEPLUS_ENABLE(I2C_FASTMODEPLUS_I2C1);
   /* USER CODE BEGIN I2C1_Init 2 */
 
   /* USER CODE END I2C1_Init 2 */
@@ -1001,18 +938,24 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
+  /*Configure GPIO pins : PC3 MOTOR2_NFAULT_Pin MOTOR3_NFAULT_Pin */
+  GPIO_InitStruct.Pin = GPIO_PIN_3|MOTOR2_NFAULT_Pin|MOTOR3_NFAULT_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : PA1 */
+  GPIO_InitStruct.Pin = GPIO_PIN_1;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
   /*Configure GPIO pins : UNUSED_PA5_Pin UNUSED_PA7_Pin MOTOR3_EN1_Pin */
   GPIO_InitStruct.Pin = UNUSED_PA5_Pin|UNUSED_PA7_Pin|MOTOR3_EN1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : MOTOR2_NFAULT_Pin MOTOR3_NFAULT_Pin */
-  GPIO_InitStruct.Pin = MOTOR2_NFAULT_Pin|MOTOR3_NFAULT_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
   /*Configure GPIO pins : MOTOR2_EN3_Pin MOTOR2_EN2_Pin MOTOR2_EN1_Pin UNUSED_PB11_Pin 
                            UNUSED_PB12_Pin UNUSED_PB13_Pin MOTOR3_NRESET_Pin MOTOR1_NRESET_Pin 
@@ -1072,25 +1015,9 @@ void StartDefaultTask(void const * argument)
 
   /* USER CODE BEGIN 5 */
 
-	Set_Operation_Mode(&motor1, COMMUTATE);
-	Set_Operation_Mode(&motor2, COMMUTATE);
-	Set_Operation_Mode(&motor3, COMMUTATE);
-
-	Set_Motor_Parameters(&motor1, TURN_CCW, 255);
-	Set_Motor_Parameters(&motor2, TURN_CCW, 255);
-	Set_Motor_Parameters(&motor3, TURN_CCW, 255);
-
-	HAL_GPIO_WritePin(MOTOR1_NRESET_GPIO_Port, MOTOR1_NRESET_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(MOTOR2_NRESET_GPIO_Port, MOTOR2_NRESET_Pin, GPIO_PIN_SET);
-	HAL_GPIO_WritePin(MOTOR3_NRESET_GPIO_Port, MOTOR3_NRESET_Pin, GPIO_PIN_SET);
-
 	while(1)
 	{
-		osDelay(10);
-		//printf("C\n");
-		Commutate_Motor(&motor1);
-		Commutate_Motor(&motor2);
-		Commutate_Motor(&motor3);
+		osDelay(1000);
 	}
   /* USER CODE END 5 */ 
 }

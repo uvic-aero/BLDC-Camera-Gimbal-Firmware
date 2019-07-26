@@ -73,12 +73,8 @@ void Error_Handler(void);
 #define MOTOR1_IN2_GPIO_Port GPIOC
 #define MOTOR1_IN3_Pin GPIO_PIN_2
 #define MOTOR1_IN3_GPIO_Port GPIOC
-#define CURR_MON_5V_Pin GPIO_PIN_3
-#define CURR_MON_5V_GPIO_Port GPIOC
 #define RC_PITCH_IN_Pin GPIO_PIN_0
 #define RC_PITCH_IN_GPIO_Port GPIOA
-#define CURR_MON_12V_Pin GPIO_PIN_1
-#define CURR_MON_12V_GPIO_Port GPIOA
 #define UART_TX_Pin GPIO_PIN_2
 #define UART_TX_GPIO_Port GPIOA
 #define UART_RX_Pin GPIO_PIN_3
