@@ -44,69 +44,72 @@ void Motor_Init(Motor_Handle_t motor, Motor_Identity_t identity)
 		{
 			motor->timer = &htim1;
 
-			motor->phaseChannel[0] = TIM_CHANNEL_1;
-			motor->phasePin[0] = MOTOR1_IN1_Pin;
-			motor->phasePort[0] = MOTOR1_IN1_GPIO_Port;
-			motor->enablePin[0] = MOTOR1_EN1_Pin;
-			motor->enablePort[0] = MOTOR1_EN1_GPIO_Port;
+			motor->phaseChannel[0] 	= 	TIM_CHANNEL_1;
+			motor->phasePin[0] 		= 	MOTOR1_IN1_Pin;
+			motor->phasePort[0] 	= 	MOTOR1_IN1_GPIO_Port;
+			motor->enablePin[0]		= 	MOTOR1_EN1_Pin;
+			motor->enablePort[0]	= 	MOTOR1_EN1_GPIO_Port;
 
-			motor->phaseChannel[1] = TIM_CHANNEL_2;
-			motor->phasePin[1] = MOTOR1_IN2_Pin;
-			motor->phasePort[1] = MOTOR1_IN2_GPIO_Port;
-			motor->enablePin[1] = MOTOR1_EN2_Pin;
-			motor->enablePort[1] = MOTOR1_EN2_GPIO_Port;
+			motor->phaseChannel[1] 	= 	TIM_CHANNEL_2;
+			motor->phasePin[1] 		= 	MOTOR1_IN2_Pin;
+			motor->phasePort[1] 	= 	MOTOR1_IN2_GPIO_Port;
+			motor->enablePin[1] 	= 	MOTOR1_EN2_Pin;
+			motor->enablePort[1] 	= 	MOTOR1_EN2_GPIO_Port;
 
-			motor->phaseChannel[2] = TIM_CHANNEL_3;
-			motor->phasePin[2] = MOTOR1_IN3_Pin;
-			motor->phasePort[2] = MOTOR1_IN3_GPIO_Port;
-			motor->enablePin[2] = MOTOR1_EN3_Pin;
-			motor->enablePort[2] = MOTOR1_EN2_GPIO_Port;
+			motor->phaseChannel[2] 	=	TIM_CHANNEL_3;
+			motor->phasePin[2] 		=	MOTOR1_IN3_Pin;
+			motor->phasePort[2]		=	MOTOR1_IN3_GPIO_Port;
+			motor->enablePin[2]		=	MOTOR1_EN3_Pin;
+			motor->enablePort[2]	=	MOTOR1_EN3_GPIO_Port;
+
 			break;
 		}
 		case YAW_MOTOR:
 		{
 			motor->timer = &htim3;
 
-			motor->phaseChannel[0] = TIM_CHANNEL_1;
-			motor->phasePin[0] = MOTOR2_IN1_Pin;
-			motor->phasePort[0] = MOTOR2_IN1_GPIO_Port;
-			motor->enablePin[0] = MOTOR2_EN1_Pin;
-			motor->enablePort[0] = MOTOR2_EN1_GPIO_Port;
+			motor->phaseChannel[0]	=	TIM_CHANNEL_1;
+			motor->phasePin[0]		=	MOTOR2_IN1_Pin;
+			motor->phasePort[0]		=	MOTOR2_IN1_GPIO_Port;
+			motor->enablePin[0]		=	MOTOR2_EN1_Pin;
+			motor->enablePort[0]	=	MOTOR2_EN1_GPIO_Port;
 
-			motor->phaseChannel[1] = TIM_CHANNEL_2;
-			motor->phasePin[1] = MOTOR2_IN2_Pin;
-			motor->phasePort[1] = MOTOR2_IN2_GPIO_Port;
-			motor->enablePin[1] = MOTOR2_EN2_Pin;
-			motor->enablePort[1] = MOTOR2_EN2_GPIO_Port;
+			motor->phaseChannel[1]	=	TIM_CHANNEL_2;
+			motor->phasePin[1]		=	MOTOR2_IN2_Pin;
+			motor->phasePort[1]		=	MOTOR2_IN2_GPIO_Port;
+			motor->enablePin[1]		=	MOTOR2_EN2_Pin;
+			motor->enablePort[1]	=	MOTOR2_EN2_GPIO_Port;
 
-			motor->phaseChannel[2] = TIM_CHANNEL_3;
-			motor->phasePin[2] = MOTOR2_IN3_Pin;
-			motor->phasePort[2] = MOTOR2_IN3_GPIO_Port;
-			motor->enablePin[2] = MOTOR2_EN3_Pin;
-			motor->enablePort[2] = MOTOR2_EN3_GPIO_Port;
+			motor->phaseChannel[2]	=	TIM_CHANNEL_3;
+			motor->phasePin[2]		=	MOTOR2_IN3_Pin;
+			motor->phasePort[2]		=	MOTOR2_IN3_GPIO_Port;
+			motor->enablePin[2]		=	MOTOR2_EN3_Pin;
+			motor->enablePort[2]	=	MOTOR2_EN3_GPIO_Port;
+
 			break;
 		}
 		case ROLL_MOTOR:
 		{
 			motor->timer = &htim4;
 
-			motor->phaseChannel[0] = TIM_CHANNEL_1;
-			motor->phasePin[0] = MOTOR3_IN1_Pin;
-			motor->phasePort[0] = MOTOR3_IN1_GPIO_Port;
-			motor->enablePin[0] = MOTOR3_EN1_Pin;
-			motor->enablePort[0] = MOTOR3_EN1_GPIO_Port;
+			motor->phaseChannel[0]	=	TIM_CHANNEL_1;
+			motor->phasePin[0]		=	MOTOR3_IN1_Pin;
+			motor->phasePort[0]		=	MOTOR3_IN1_GPIO_Port;
+			motor->enablePin[0]		=	MOTOR3_EN1_Pin;
+			motor->enablePort[0]	=	MOTOR3_EN1_GPIO_Port;
 
-			motor->phaseChannel[1] = TIM_CHANNEL_2;
-			motor->phasePin[1] = MOTOR3_IN2_Pin;
-			motor->phasePort[1] = MOTOR3_IN2_GPIO_Port;
-			motor->enablePin[1] = MOTOR3_EN2_Pin;
-			motor->enablePort[1] = MOTOR3_EN2_GPIO_Port;
+			motor->phaseChannel[1]	=	TIM_CHANNEL_2;
+			motor->phasePin[1]		=	MOTOR3_IN2_Pin;
+			motor->phasePort[1]		=	MOTOR3_IN2_GPIO_Port;
+			motor->enablePin[1]		=	MOTOR3_EN2_Pin;
+			motor->enablePort[1]	=	MOTOR3_EN2_GPIO_Port;
 
-			motor->phaseChannel[2] = TIM_CHANNEL_3;
-			motor->phasePin[2] = MOTOR3_IN3_Pin;
-			motor->phasePort[2] = MOTOR3_IN3_GPIO_Port;;
-			motor->enablePin[2] = MOTOR2_EN3_Pin;
-			motor->enablePort[2] = MOTOR3_EN3_GPIO_Port;
+			motor->phaseChannel[2]	=	TIM_CHANNEL_3;
+			motor->phasePin[2]		=	MOTOR3_IN3_Pin;
+			motor->phasePort[2]		=	MOTOR3_IN3_GPIO_Port;;
+			motor->enablePin[2]		=	MOTOR3_EN3_Pin;
+			motor->enablePort[2]	=	MOTOR3_EN3_GPIO_Port;
+
 			break;
 		}
 	}

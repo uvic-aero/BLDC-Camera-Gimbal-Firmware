@@ -106,7 +106,6 @@ void StartDefaultTask(void const * argument);
 
 /* USER CODE BEGIN PFP */
 
-
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
@@ -903,71 +902,83 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5|MOTOR2_EN1_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOC, MOTOR1_EN1_Pin|MOTOR2_NRESET_Pin|MOTOR3_EN3_Pin|MOTOR3_EN2_Pin 
+                          |UNUSED_PC12_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, MOTOR1_EN1_Pin|MOTOR1_EN3_Pin|MOTOR2_NRESET_Pin|MOTOR2_EN2_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, UNUSED_PA5_Pin|UNUSED_PA7_Pin|MOTOR3_EN1_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, MOTOR2_EN3_Pin|MOTOR3_EN3_Pin|MOTOR3_EN2_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, MOTOR2_EN3_Pin|MOTOR2_EN2_Pin|MOTOR2_EN1_Pin|UNUSED_PB11_Pin 
+                          |UNUSED_PB12_Pin|UNUSED_PB13_Pin|MOTOR3_NRESET_Pin|MOTOR1_NRESET_Pin 
+                          |MOTOR1_EN3_Pin|MOTOR1_EN2_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(MOTOR3_EN1_GPIO_Port, MOTOR3_EN1_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(UNUSED_PD2_GPIO_Port, UNUSED_PD2_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pins : CURR_MON_5V_Pin BASE_IMU_INT_Pin MOTOR3_NRESET_Pin */
-  GPIO_InitStruct.Pin = CURR_MON_5V_Pin|BASE_IMU_INT_Pin|MOTOR3_NRESET_Pin;
+  /*Configure GPIO pins : MOTOR1_EN1_Pin MOTOR2_NRESET_Pin MOTOR3_EN3_Pin MOTOR3_EN2_Pin 
+                           UNUSED_PC12_Pin */
+  GPIO_InitStruct.Pin = MOTOR1_EN1_Pin|MOTOR2_NRESET_Pin|MOTOR3_EN3_Pin|MOTOR3_EN2_Pin 
+                          |UNUSED_PC12_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : PC3 MOTOR2_NFAULT_Pin MOTOR3_NFAULT_Pin */
+  GPIO_InitStruct.Pin = GPIO_PIN_3|MOTOR2_NFAULT_Pin|MOTOR3_NFAULT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : CURR_MON_12V_Pin MOTOR2_NFAULT_Pin */
-  GPIO_InitStruct.Pin = CURR_MON_12V_Pin|MOTOR2_NFAULT_Pin;
+  /*Configure GPIO pin : PA1 */
+  GPIO_InitStruct.Pin = GPIO_PIN_1;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PA5 MOTOR2_EN1_Pin */
-  GPIO_InitStruct.Pin = GPIO_PIN_5|MOTOR2_EN1_Pin;
+  /*Configure GPIO pins : UNUSED_PA5_Pin UNUSED_PA7_Pin MOTOR3_EN1_Pin */
+  GPIO_InitStruct.Pin = UNUSED_PA5_Pin|UNUSED_PA7_Pin|MOTOR3_EN1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : MOTOR1_EN1_Pin MOTOR1_EN3_Pin MOTOR2_NRESET_Pin MOTOR2_EN2_Pin */
-  GPIO_InitStruct.Pin = MOTOR1_EN1_Pin|MOTOR1_EN3_Pin|MOTOR2_NRESET_Pin|MOTOR2_EN2_Pin;
+  /*Configure GPIO pins : MOTOR2_EN3_Pin MOTOR2_EN2_Pin MOTOR2_EN1_Pin UNUSED_PB11_Pin 
+                           UNUSED_PB12_Pin UNUSED_PB13_Pin MOTOR3_NRESET_Pin MOTOR1_NRESET_Pin 
+                           MOTOR1_EN3_Pin MOTOR1_EN2_Pin */
+  GPIO_InitStruct.Pin = MOTOR2_EN3_Pin|MOTOR2_EN2_Pin|MOTOR2_EN1_Pin|UNUSED_PB11_Pin 
+                          |UNUSED_PB12_Pin|UNUSED_PB13_Pin|MOTOR3_NRESET_Pin|MOTOR1_NRESET_Pin 
+                          |MOTOR1_EN3_Pin|MOTOR1_EN2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : AXIS_IMU_INT_Pin */
-  GPIO_InitStruct.Pin = AXIS_IMU_INT_Pin;
+  /*Configure GPIO pins : AXIS_IMU_INT_Pin BASE_IMU_INT_Pin */
+  GPIO_InitStruct.Pin = AXIS_IMU_INT_Pin|BASE_IMU_INT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(AXIS_IMU_INT_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : MOTOR1_NFAULT_Pin MOTOR1_EN2_Pin MOTOR1_NRESET_Pin MOTOR3_NFAULT_Pin */
-  GPIO_InitStruct.Pin = MOTOR1_NFAULT_Pin|MOTOR1_EN2_Pin|MOTOR1_NRESET_Pin|MOTOR3_NFAULT_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : MOTOR2_EN3_Pin MOTOR3_EN3_Pin MOTOR3_EN2_Pin */
-  GPIO_InitStruct.Pin = MOTOR2_EN3_Pin|MOTOR3_EN3_Pin|MOTOR3_EN2_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : MOTOR3_EN1_Pin */
-  GPIO_InitStruct.Pin = MOTOR3_EN1_Pin;
+  /*Configure GPIO pin : UNUSED_PD2_Pin */
+  GPIO_InitStruct.Pin = UNUSED_PD2_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(MOTOR3_EN1_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(UNUSED_PD2_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : MOTOR1_NFAULT_Pin */
+  GPIO_InitStruct.Pin = MOTOR1_NFAULT_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(MOTOR1_NFAULT_GPIO_Port, &GPIO_InitStruct);
 
   /**/
   HAL_I2CEx_EnableFastModePlus(SYSCFG_CFGR1_I2C_PB6_FMP);
+
+  /**/
+  HAL_I2CEx_EnableFastModePlus(SYSCFG_CFGR1_I2C_PB9_FMP);
 
   /* EXTI interrupt init*/
   HAL_NVIC_SetPriority(EXTI15_10_IRQn, 6, 0);
@@ -990,9 +1001,10 @@ void StartDefaultTask(void const * argument)
 {
 
   /* USER CODE BEGIN 5 */
+
 	while(1)
 	{
-		osDelay(100000);
+		osDelay(1000);
 	}
   /* USER CODE END 5 */ 
 }
