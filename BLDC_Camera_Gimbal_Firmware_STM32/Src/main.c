@@ -87,6 +87,7 @@ extern QueueHandle_t xEventsQueue;
 extern QueueHandle_t xDataTransmitQueue;
 
 Encoder_t encoder;
+IMU_t imu;
 
 /* USER CODE END PV */
 
@@ -107,19 +108,6 @@ static void MX_TIM16_Init(void);
 void StartDefaultTask(void const * argument);
 
 /* USER CODE BEGIN PFP */
-
-void vTestTask(void* pvParams)
-{
-	Encoder_Init(&encoder, PITCH_ENCODER, 0x3);
-	float angle = 0.0;
-
-	while(true)
-	{
-		angle = Poll_Encoder(&encoder);
-		printf("Angle: %d\n", (int)angle);
-		vTaskDelay(1000);
-	}
-}
 
 /* USER CODE END PFP */
 
@@ -200,8 +188,7 @@ int main(void)
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
-  //Gimbal_Init();
-  xTaskCreate(vTestTask, "Test", configMINIMAL_STACK_SIZE, NULL, 5, NULL);
+  Gimbal_Init();
   /* USER CODE END RTOS_THREADS */
 
   /* Start scheduler */
@@ -292,7 +279,7 @@ static void MX_I2C1_Init(void)
 
   /* USER CODE END I2C1_Init 1 */
   hi2c1.Instance = I2C1;
-  hi2c1.Init.Timing = 0x2000090E;
+  hi2c1.Init.Timing = 0x00000001;
   hi2c1.Init.OwnAddress1 = 0;
   hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
@@ -316,6 +303,9 @@ static void MX_I2C1_Init(void)
   {
     Error_Handler();
   }
+  /** I2C Fast mode Plus enable 
+  */
+  __HAL_SYSCFG_FASTMODEPLUS_ENABLE(I2C_FASTMODEPLUS_I2C1);
   /* USER CODE BEGIN I2C1_Init 2 */
 
   /* USER CODE END I2C1_Init 2 */
