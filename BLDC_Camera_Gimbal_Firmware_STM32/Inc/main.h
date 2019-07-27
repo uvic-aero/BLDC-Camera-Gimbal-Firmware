@@ -167,8 +167,8 @@ void Error_Handler(void);
 
 // ENCODER GLOBAL CONFIGS
 #define ENCODER_I2C_CHANNEL		hi2c1
-#define ENCODER_PITCH_I2C_ADDR 	(0x2)
-#define ENCODER_YAW_I2C_ADDR	(0x3)
+#define ENCODER_PITCH_I2C_ADDR 	(0x3)
+#define ENCODER_YAW_I2C_ADDR	(0x0)
 #define ENCODER_ROLL_I2C_ADDR	(0x1)
 
 // CONTROL LOOP GLOBAL CONFIGS
@@ -209,6 +209,14 @@ void Error_Handler(void);
 #define YAW_MOTOR_KP					(8.0f)
 #define YAW_MOTOR_KD					(0.0f)
 #define YAW_MOTOR_KI					(0.0f)
+
+#define ROLL_MOTOR_KP					(8.0f)
+#define ROLL_MOTOR_KD					(0.0f)
+#define ROLL_MOTOR_KI					(0.0f)
+
+#define PITCH_MOTOR_KP					(8.0f)
+#define PITCH_MOTOR_KD					(0.0f)
+#define PITCH_MOTOR_KI					(0.0f)
 
 /* USER CODE END Private defines */
 

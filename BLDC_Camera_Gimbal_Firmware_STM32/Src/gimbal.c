@@ -110,20 +110,20 @@ void Gimbal_InitSensors(void)
 	RC_Init(&rcYaw, RC_INPUT_YAW);
 	RC_Init(&rcMode, RC_INPUT_MODE);
 
-	//Encoder_Init(&pitchEncoder, PITCH_ENCODER, ENCODER_PITCH_I2C_ADDR);
-	//Poll_Encoder(&pitchEncoder);
-	//Set_Zero_Position(&pitchEncoder, pitchEncoder.angleRaw);
-	Encoder_Init(&yawEncoder, YAW_ENCODER, ENCODER_YAW_I2C_ADDR);
-	Poll_Encoder(&yawEncoder);
-	Set_Zero_Position(&yawEncoder, yawEncoder.angleFloat);
+	Encoder_Init(&pitchEncoder, PITCH_ENCODER, ENCODER_PITCH_I2C_ADDR);
+	Poll_Encoder(&pitchEncoder);
+	Set_Zero_Position(&pitchEncoder, pitchEncoder.angleFloat);
+	//Encoder_Init(&yawEncoder, YAW_ENCODER, ENCODER_YAW_I2C_ADDR);
+	//Poll_Encoder(&yawEncoder);
+	//Set_Zero_Position(&yawEncoder, yawEncoder.angleFloat);
 	//Encoder_Init(&rollEncoder, ROLL_ENCODER, ENCODER_ROLL_I2C_ADDR);
 	//Poll_Encoder(&rollEncoder);
-	//Set_Zero_Position(&rollEncoder, rollEncoder.angleRaw);
+	//Set_Zero_Position(&rollEncoder, rollEncoder.angleFloat);
 
-	//Motor_Init(&pitchMotor, PITCH_MOTOR);
-	//Set_Operation_Mode(&pitchMotor, COAST);
-	Motor_Init(&yawMotor, YAW_MOTOR);
-	Set_Operation_Mode(&yawMotor, COAST);
+	Motor_Init(&pitchMotor, PITCH_MOTOR);
+	Set_Operation_Mode(&pitchMotor, COAST);
+	//Motor_Init(&yawMotor, YAW_MOTOR);
+	//Set_Operation_Mode(&yawMotor, COAST);
 	//Motor_Init(&rollMotor, ROLL_MOTOR);
 	//Set_Operation_Mode(&rollMotor, COAST);
 
@@ -167,15 +167,20 @@ void vGimbalControlLoopTask(void* pvParameters)
 
 	EulerAngles_t temp = {.pitch = 0.0, .yaw = 0.0, .roll = 0.0 };
 
-	PID_t pitchPID 	= 	{.kp = 1.0, .kd = 0.0, .ki = 0.0, .error_new = 0.0, .error_old = 0.0, .error_acc = 0.0, .error_diff = 0.0 };
-	PID_t yawPID 	=	{.kp = YAW_MOTOR_KP, .kd = YAW_MOTOR_KD, .ki = 0.0, .error_new = 0.0, .error_old = 0.0, .error_acc = 0.0, .error_diff = 0.0 };
-	PID_t rollPID 	=	{.kp = 1.0, .kd = 0.0, .ki = 0.0, .error_new = 0.0, .error_old = 0.0, .error_acc = 0.0, .error_diff = 0.0 };
+	PID_t pitchPID 	= 	{	.kp = PITCH_MOTOR_KP, .kd = PITCH_MOTOR_KD, .ki = PITCH_MOTOR_KI,
+							.error_new = 0.0, .error_old = 0.0, .error_acc = 0.0, .error_diff = 0.0 };
+
+	PID_t yawPID 	=	{	.kp = YAW_MOTOR_KP, .kd = YAW_MOTOR_KD, .ki = YAW_MOTOR_KI,
+							.error_new = 0.0, .error_old = 0.0, .error_acc = 0.0, .error_diff = 0.0 };
+
+	PID_t rollPID 	=	{	.kp = ROLL_MOTOR_KP, .kd = ROLL_MOTOR_KD, .ki = ROLL_MOTOR_KI,
+							.error_new = 0.0, .error_old = 0.0, .error_acc = 0.0, .error_diff = 0.0 };
 
 	float pitchCtrl, yawCtrl, rollCtrl;
 
 	IMU_Start(&imu);
 
-	//int encoder_counter = 0;
+	int counter = 0;
 
 	while(true)
 	{
@@ -184,8 +189,8 @@ void vGimbalControlLoopTask(void* pvParameters)
 
 		IMU_GetQuaternion(&imu);
 		IMU_CalcEulerAngles(&imu);
-
 		currCameraPos = imu.pos;
+
 
 		// try reading from target queue, if there is nothing, move on, don't wait
 		// if there is something, the new target will be updated in targetCameraPos
@@ -197,9 +202,10 @@ void vGimbalControlLoopTask(void* pvParameters)
 		}
 
 		/// Get encoder values
-		//currMotorPos.pitch 	= Angles_Normalize180( Poll_Encoder(&pitchEncoder) );
-		currMotorPos.yaw 	= Angles_Normalize180( Poll_Encoder(&yawEncoder) );
+		currMotorPos.pitch 	= Angles_Normalize180( Poll_Encoder(&pitchEncoder) );
+		//currMotorPos.yaw 	= Angles_Normalize180( Poll_Encoder(&yawEncoder) );
 		//currMotorPos.roll 	= Angles_Normalize180( Poll_Encoder(&rollEncoder) );
+
 
 		// Calculate the Inverse Kinematic target motor positions
 		targetMotorPos = Gimbal_CalcMotorTargetPos(currCameraPos, targetCameraPos, currMotorPos);
@@ -209,8 +215,14 @@ void vGimbalControlLoopTask(void* pvParameters)
 		yawCtrl 	= Gimbal_CalcPID(&yawPID, targetMotorPos.yaw, currMotorPos.yaw);
 		rollCtrl	= Gimbal_CalcPID(&rollPID, targetMotorPos.roll, currMotorPos.roll);
 
+		if (counter == 0)
+			printf("CM: %d, TM: %d, CI: %d, TI: %d\n",
+				(int)(currMotorPos.pitch), (int)(targetMotorPos.pitch), (int)(currCameraPos.pitch), (int)(targetCameraPos.pitch));
+
+		counter = (counter + 1) % 100;
+
 		// send to motor // TODO: other motors than yaw
-		xQueueOverwrite(xMotorControlQueue, (void*)&yawCtrl);
+		xQueueOverwrite(xMotorControlQueue, (void*)&pitchCtrl);
 	}
 }
 
@@ -307,8 +319,8 @@ void vRcModeHandler(void* pvParameters)
 void vMotorCommutationTask(void* pvParameters)
 {
 
-	Set_Operation_Mode(&yawMotor, COMMUTATE);
-	Set_Motor_Parameters(&yawMotor, TURN_CCW, 0);
+	Set_Operation_Mode(&pitchMotor, COMMUTATE);
+	Set_Motor_Parameters(&pitchMotor, TURN_CCW, 0);
 	float speed = 0.0;
 	uint32_t delay = MOTOR_MAX_COMMUTATION_DELAY;
 	uint8_t pulse = 0;
@@ -320,8 +332,8 @@ void vMotorCommutationTask(void* pvParameters)
 
 		Gimbal_CalcMotorParams(speed, &delay, &pulse, &dir);
 
-		Set_Motor_Parameters(&yawMotor, dir, pulse);
-		Commutate_Motor(&yawMotor);
+		Set_Motor_Parameters(&pitchMotor, dir, pulse);
+		Commutate_Motor(&pitchMotor);
 
 		// start interrupt for delay and wait for notification from TIM7 ISR
 		__HAL_TIM_SET_COUNTER(&htim16, 0xffff - (uint16_t)(delay & 0x0000FFFF));
@@ -474,18 +486,13 @@ EulerAngles_t Gimbal_CalcMotorTargetPos(EulerAngles_t currIMU, EulerAngles_t tar
 	EulerAngles_t targMotorPos = {.pitch = 0.0, .yaw = 0.0, .roll = 0.0,};
 
 #if ENABLED(MODE_1AXIS)
-	float errYaw	=	Angles_CalcDist(targIMU.pitch,  -currIMU.pitch); // MOTOR YAW MAPPED TO IMU PITCH TEMPORARILY!!!!!!!!!!!!!!!!
+	float errPitch	=	Angles_CalcDist(targIMU.pitch,  -currIMU.pitch);
 
-	if (fabs(errYaw) < 3.0)
-		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
-	else
-		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
-
-	targMotorPos.yaw	= Angles_Normalize180(currMotorPos.yaw + errYaw);
+	targMotorPos.pitch	= Angles_Normalize180(currMotorPos.pitch + errPitch);
 
 	// try to cap the value so we don't go past +/- 90deg
-	if (fabs(targMotorPos.yaw) > 70.0 )
-		targMotorPos.yaw = copysignf(70.0, targMotorPos.yaw);
+	if (fabs(targMotorPos.pitch) > 70.0 )
+		targMotorPos.pitch = copysignf(70.0, targMotorPos.pitch);
 
 
 #elif ENABLED(MODE_2AXIS)

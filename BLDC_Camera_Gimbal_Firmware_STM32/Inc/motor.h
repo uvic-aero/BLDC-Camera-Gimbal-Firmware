@@ -46,6 +46,11 @@ typedef struct Motor_t
 	GPIO_TypeDef* enablePort[3];
 	uint16_t phaseIndex[3];
 
+	uint16_t nResetPin;
+	GPIO_TypeDef* nResetPort;
+	uint16_t nFaultPin;
+	GPIO_TypeDef* nFaultPort;
+
 	uint8_t direction;
 	uint8_t maxPulseSize;
 
@@ -58,5 +63,7 @@ void Set_Operation_Mode(Motor_Handle_t motor, Operation_Mode_t mode);
 void Commutate_Motor(Motor_Handle_t motor);
 void Run_Motor(Motor_Handle_t motor);
 void Set_Motor_Parameters(Motor_Handle_t motor, uint8_t direction, uint8_t pulse);
+void Motor_EnableDriver(Motor_Handle_t motor);
+void Motor_DisableDriver(Motor_Handle_t motor);
 
 #endif /* MOTOR_H_ */
