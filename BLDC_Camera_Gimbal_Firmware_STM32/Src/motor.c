@@ -29,10 +29,10 @@ static const uint8_t waveform[NUM_STEPS] =	{
 	 97, 94, 90, 86, 82, 78, 74, 70, 66, 62, 58, 54, 49, 45, 41, 37, 33, 29, 25, 20, 16, 12,  8,  4
 	};
 
-void Motor_Init(Motor_Handle_t motor, Motor_Identity_t identity)
+void Motor_Init(MotorHandle_t motor, MotorIdentity_t identity)
 {
 	motor->identity = identity;
-	motor->direction = TURN_CW;
+	motor->direction = MOTOR_TURN_CW;
 	motor->phaseIndex[0] = 0;
 	motor->phaseIndex[1] = motor->phaseIndex[0] + (NUM_STEPS / 3);
 	motor->phaseIndex[2] = motor->phaseIndex[1] + (NUM_STEPS / 3);
@@ -132,7 +132,7 @@ void Motor_Init(Motor_Handle_t motor, Motor_Identity_t identity)
 	Motor_EnableDriver(motor);
 }
 
-void Set_Operation_Mode(Motor_Handle_t motor, Operation_Mode_t mode)
+void Motor_SetOperationMode(MotorHandle_t motor, MotorOperationMode_t mode)
 {
 	HAL_TIM_PWM_Stop(motor->timer, motor->phaseChannel[0]);
 	HAL_TIM_PWM_Stop(motor->timer, motor->phaseChannel[1]);
@@ -166,9 +166,9 @@ void Set_Operation_Mode(Motor_Handle_t motor, Operation_Mode_t mode)
 	motor->mode = mode;
 }
 
-void Commutate_Motor(Motor_Handle_t motor)
+void Motor_Commutate(MotorHandle_t motor)
 {
-	if(motor->direction == TURN_CW)
+	if(motor->direction == MOTOR_TURN_CW)
 	{
 		motor->phaseIndex[0]++;
 		if(motor->phaseIndex[0] >= NUM_STEPS) motor->phaseIndex[0] = 0;
@@ -189,10 +189,10 @@ void Commutate_Motor(Motor_Handle_t motor)
 		motor->phaseIndex[2] = motor->phaseIndex[2] <= 0 ? (NUM_STEPS - 1) : (motor->phaseIndex[2] - 1);
 	}
 
-	Run_Motor(motor);
+	Motor_Run(motor);
 }
 
-void Run_Motor(Motor_Handle_t motor)
+void Motor_Run(MotorHandle_t motor)
 {
 	if(waveform[motor->phaseIndex[0]] != 0)
 	{
@@ -228,18 +228,18 @@ void Run_Motor(Motor_Handle_t motor)
 	}
 }
 
-void Set_Motor_Parameters(Motor_Handle_t motor, uint8_t direction, uint8_t pulse)
+void Motor_SetParams(MotorHandle_t motor, MotorDirection_t direction, uint8_t pulse)
 {
 	motor->direction = direction;
 	motor->maxPulseSize = pulse;
 }
 
-void Motor_EnableDriver(Motor_Handle_t motor)
+void Motor_EnableDriver(MotorHandle_t motor)
 {
 	HAL_GPIO_WritePin(motor->nResetPort, motor->nResetPin, GPIO_PIN_SET);
 }
 
-void Motor_DisableDriver(Motor_Handle_t motor)
+void Motor_DisableDriver(MotorHandle_t motor)
 {
 	HAL_GPIO_WritePin(motor->nResetPort, motor->nResetPin, GPIO_PIN_RESET);
 }
