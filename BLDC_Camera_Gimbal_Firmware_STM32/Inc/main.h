@@ -167,9 +167,9 @@ void Error_Handler(void);
 
 // ENCODER GLOBAL CONFIGS
 #define ENCODER_I2C_CHANNEL		hi2c1
-#define ENCODER_PITCH_I2C_ADDR 	(0x3)
-#define ENCODER_YAW_I2C_ADDR	(0x0)
-#define ENCODER_ROLL_I2C_ADDR	(0x1)
+#define ENCODER_PITCH_I2C_ADDR 	(A2A1_11)
+#define ENCODER_YAW_I2C_ADDR	(A2A1_01)
+#define ENCODER_ROLL_I2C_ADDR	(A2A1_00)
 
 // CONTROL LOOP GLOBAL CONFIGS
 #define ENABLED(__mode__)		((__mode__) == 1)

@@ -17,19 +17,25 @@
 #define DATA_SIZE (uint16_t)0x1
 #define ENCODER_ADDRESS_BASE (uint16_t)0x40
 
-extern I2C_HandleTypeDef hi2c1;
-
-typedef enum Encoder_Identity_t
+typedef enum EncoderIdentity_t
 {
 	PITCH_ENCODER,
 	YAW_ENCODER,
 	ROLL_ENCODER
 
-} Encoder_Identity_t;
+} EncoderIdentity_t;
+
+typedef enum EncoderAddrConfig_t
+{
+	A2A1_00 = (uint8_t)0x0,
+	A2A1_01 = (uint8_t)0x1,
+	A2A1_10 = (uint8_t)0x2,
+	A2A1_11 = (uint8_t)0x3,
+} EncoderAddrConfig_t;
 
 typedef struct Encoder_t
 {
-	Encoder_Identity_t identity;
+	EncoderIdentity_t identity;
 	I2C_HandleTypeDef* i2c;
 
 	float zeroPosition;
@@ -45,10 +51,10 @@ typedef struct Encoder_t
 
 } Encoder_t;
 
-typedef Encoder_t* Encoder_Handle_t;
+typedef Encoder_t* EncoderHandle_t;
 
-void Encoder_Init(Encoder_Handle_t encoder, Encoder_Identity_t identity, uint16_t pinconfig);
-float Poll_Encoder(Encoder_Handle_t encoder);
-void Set_Zero_Position(Encoder_Handle_t encoder, float zeropos);
+void	Encoder_Init(EncoderHandle_t encoder, EncoderIdentity_t identity, EncoderAddrConfig_t pinconfig);
+float	Encoder_GetAngle(EncoderHandle_t encoder);
+void	Encoder_SetZeroPosition(EncoderHandle_t encoder, float zeropos);
 
 #endif /* ENCODER_H_ */

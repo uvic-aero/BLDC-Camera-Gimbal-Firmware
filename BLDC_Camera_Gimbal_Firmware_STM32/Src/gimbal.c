@@ -111,9 +111,9 @@ void Gimbal_InitSensors(void)
 	RC_Init(&rcMode, RC_INPUT_MODE);
 
 	Encoder_Init(&pitchEncoder, PITCH_ENCODER, ENCODER_PITCH_I2C_ADDR);
-	Poll_Encoder(&pitchEncoder);
-	Set_Zero_Position(&pitchEncoder, pitchEncoder.angleFloat);
-	//Encoder_Init(&yawEncoder, YAW_ENCODER, ENCODER_YAW_I2C_ADDR);
+	Encoder_GetAngle(&pitchEncoder);
+	Encoder_SetZeroPosition(&pitchEncoder, pitchEncoder.angleFloat);
+	//Encoder_Init(&yawEncoder, YAW_ENCODER, ENCODER_YAW_I2C_ADDR_);
 	//Poll_Encoder(&yawEncoder);
 	//Set_Zero_Position(&yawEncoder, yawEncoder.angleFloat);
 	//Encoder_Init(&rollEncoder, ROLL_ENCODER, ENCODER_ROLL_I2C_ADDR);
@@ -121,7 +121,7 @@ void Gimbal_InitSensors(void)
 	//Set_Zero_Position(&rollEncoder, rollEncoder.angleFloat);
 
 	Motor_Init(&pitchMotor, PITCH_MOTOR);
-	Set_Operation_Mode(&pitchMotor, COAST);
+	Motor_SetOperationMode(&pitchMotor, COAST);
 	//Motor_Init(&yawMotor, YAW_MOTOR);
 	//Set_Operation_Mode(&yawMotor, COAST);
 	//Motor_Init(&rollMotor, ROLL_MOTOR);
@@ -202,7 +202,7 @@ void vGimbalControlLoopTask(void* pvParameters)
 		}
 
 		/// Get encoder values
-		currMotorPos.pitch 	= Angles_Normalize180( Poll_Encoder(&pitchEncoder) );
+		currMotorPos.pitch 	= Angles_Normalize180( Encoder_GetAngle(&pitchEncoder) );
 		//currMotorPos.yaw 	= Angles_Normalize180( Poll_Encoder(&yawEncoder) );
 		//currMotorPos.roll 	= Angles_Normalize180( Poll_Encoder(&rollEncoder) );
 
@@ -319,12 +319,12 @@ void vRcModeHandler(void* pvParameters)
 void vMotorCommutationTask(void* pvParameters)
 {
 
-	Set_Operation_Mode(&pitchMotor, COMMUTATE);
-	Set_Motor_Parameters(&pitchMotor, TURN_CCW, 0);
+	Motor_SetOperationMode(&pitchMotor, COMMUTATE);
+	Motor_SetParams(&pitchMotor, MOTOR_TURN_CCW, 0);
 	float speed = 0.0;
 	uint32_t delay = MOTOR_MAX_COMMUTATION_DELAY;
 	uint8_t pulse = 0;
-	uint8_t dir = TURN_CCW;
+	uint8_t dir = MOTOR_TURN_CCW;
 	do
 	{
 		// check to see if theres a new PID output
@@ -332,8 +332,8 @@ void vMotorCommutationTask(void* pvParameters)
 
 		Gimbal_CalcMotorParams(speed, &delay, &pulse, &dir);
 
-		Set_Motor_Parameters(&pitchMotor, dir, pulse);
-		Commutate_Motor(&pitchMotor);
+		Motor_SetParams(&pitchMotor, dir, pulse);
+		Motor_Commutate(&pitchMotor);
 
 		// start interrupt for delay and wait for notification from TIM7 ISR
 		__HAL_TIM_SET_COUNTER(&htim16, 0xffff - (uint16_t)(delay & 0x0000FFFF));
@@ -432,8 +432,8 @@ void Gimbal_CalcMotorParams(float speed_in, uint32_t* delay_out, uint8_t* pulse_
 {
 	// =========== 1. DIR ====================================
 	// extract sign to determine delay and direction
-	if (speed_in >= 0.0) *dir_out = TURN_CCW; // + -> CCW
-	else *dir_out = TURN_CW;				// - -> CW
+	if (speed_in >= 0.0) *dir_out = MOTOR_TURN_CCW; // + -> CCW
+	else *dir_out = MOTOR_TURN_CW;				// - -> CW
 	// =======================================================
 
 	// =========== 2. PULSE ==================================
