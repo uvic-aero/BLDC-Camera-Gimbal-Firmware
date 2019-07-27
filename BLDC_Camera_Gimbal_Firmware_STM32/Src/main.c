@@ -86,9 +86,6 @@ extern QueueHandle_t xSystemTimeQueue;
 extern QueueHandle_t xEventsQueue;
 extern QueueHandle_t xDataTransmitQueue;
 
-Encoder_t encoder;
-IMU_t imu;
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
