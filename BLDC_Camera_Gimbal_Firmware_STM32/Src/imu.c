@@ -108,11 +108,13 @@ void IMU_Init(IMU_Handle_t imu, IMU_Identity_t ident)
 
 	// IF ANY OF THESE CALLS FAIL IT WILL LOOP FOREVER!!!!!!!!!!!!!!!!!!
 	IMU_DisableInterrupt(imu); // mask interrupts so that it can't affect system state
+
 	mpu_init(&int_params);
 	mpu_set_sensors(INV_XYZ_GYRO | INV_XYZ_ACCEL | INV_XYZ_COMPASS);
 	mpu_get_accel_sens(&(imu->aSens));
 	mpu_get_gyro_sens(&(imu->gSens));
 	mpu_set_int_level(0 /*0 means active high*/);
+
 
 	/* !!!!!! DO NOT SET INT LATCHED !!!!!! */
 	// it causes failure for some reason

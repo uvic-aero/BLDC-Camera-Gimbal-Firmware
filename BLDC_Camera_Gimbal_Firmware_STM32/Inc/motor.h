@@ -10,32 +10,35 @@
 
 #include "main.h"
 
-#define TURN_CW (uint8_t)0x00
-#define TURN_CCW (uint8_t)0x01
-
 extern TIM_HandleTypeDef htim1;
 extern TIM_HandleTypeDef htim3;
 extern TIM_HandleTypeDef htim4;
 
-typedef enum Motor_Identity_t
+typedef enum MotorIdentity_t
 {
 	PITCH_MOTOR,
 	YAW_MOTOR,
 	ROLL_MOTOR
 
-} Motor_Identity_t;
+} MotorIdentity_t;
 
-typedef enum Operation_Mode_t
+typedef enum MotorOperationMode_t
 {
 	COMMUTATE,
 	BRAKE,
 	COAST
-} Operation_Mode_t;
+} MotorOperationMode_t;
+
+typedef enum MotorDirection_t
+{
+	MOTOR_TURN_CCW,
+	MOTOR_TURN_CW,
+} MotorDirection_t;
 
 typedef struct Motor_t
 {
-	Motor_Identity_t identity;
-	Operation_Mode_t mode;
+	MotorIdentity_t identity;
+	MotorOperationMode_t mode;
 
 	TIM_HandleTypeDef* timer;
 
@@ -46,17 +49,24 @@ typedef struct Motor_t
 	GPIO_TypeDef* enablePort[3];
 	uint16_t phaseIndex[3];
 
+	uint16_t nResetPin;
+	GPIO_TypeDef* nResetPort;
+	uint16_t nFaultPin;
+	GPIO_TypeDef* nFaultPort;
+
 	uint8_t direction;
 	uint8_t maxPulseSize;
 
 } Motor_t;
 
-typedef Motor_t* Motor_Handle_t;
+typedef Motor_t* MotorHandle_t;
 
-void Motor_Init(Motor_Handle_t motor, Motor_Identity_t identity);
-void Set_Operation_Mode(Motor_Handle_t motor, Operation_Mode_t mode);
-void Commutate_Motor(Motor_Handle_t motor);
-void Run_Motor(Motor_Handle_t motor);
-void Set_Motor_Parameters(Motor_Handle_t motor, uint8_t direction, uint8_t pulse);
+void Motor_Init(MotorHandle_t motor, MotorIdentity_t identity);
+void Motor_SetOperationMode(MotorHandle_t motor, MotorOperationMode_t mode);
+void Motor_Commutate(MotorHandle_t motor);
+void Motor_Run(MotorHandle_t motor);
+void Motor_SetParams(MotorHandle_t motor, MotorDirection_t direction, uint8_t pulse);
+void Motor_EnableDriver(MotorHandle_t motor);
+void Motor_DisableDriver(MotorHandle_t motor);
 
 #endif /* MOTOR_H_ */

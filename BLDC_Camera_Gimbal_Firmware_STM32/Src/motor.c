@@ -29,10 +29,10 @@ static const uint8_t waveform[NUM_STEPS] =	{
 	 97, 94, 90, 86, 82, 78, 74, 70, 66, 62, 58, 54, 49, 45, 41, 37, 33, 29, 25, 20, 16, 12,  8,  4
 	};
 
-void Motor_Init(Motor_Handle_t motor, Motor_Identity_t identity)
+void Motor_Init(MotorHandle_t motor, MotorIdentity_t identity)
 {
 	motor->identity = identity;
-	motor->direction = TURN_CW;
+	motor->direction = MOTOR_TURN_CW;
 	motor->phaseIndex[0] = 0;
 	motor->phaseIndex[1] = motor->phaseIndex[0] + (NUM_STEPS / 3);
 	motor->phaseIndex[2] = motor->phaseIndex[1] + (NUM_STEPS / 3);
@@ -40,79 +40,99 @@ void Motor_Init(Motor_Handle_t motor, Motor_Identity_t identity)
 
 	switch(identity)
 	{
-		case PITCH_MOTOR:
+		case YAW_MOTOR:
 		{
 			motor->timer = &htim1;
 
-			motor->phaseChannel[0] = TIM_CHANNEL_1;
-			motor->phasePin[0] = MOTOR1_IN1_Pin;
-			motor->phasePort[0] = MOTOR1_IN1_GPIO_Port;
-			motor->enablePin[0] = MOTOR1_EN1_Pin;
-			motor->enablePort[0] = MOTOR1_EN1_GPIO_Port;
+			motor->phaseChannel[0] 	= 	TIM_CHANNEL_1;
+			motor->phasePin[0] 		= 	MOTOR1_IN1_Pin;
+			motor->phasePort[0] 	= 	MOTOR1_IN1_GPIO_Port;
+			motor->enablePin[0]		= 	MOTOR1_EN1_Pin;
+			motor->enablePort[0]	= 	MOTOR1_EN1_GPIO_Port;
 
-			motor->phaseChannel[1] = TIM_CHANNEL_2;
-			motor->phasePin[1] = MOTOR1_IN2_Pin;
-			motor->phasePort[1] = MOTOR1_IN2_GPIO_Port;
-			motor->enablePin[1] = MOTOR1_EN2_Pin;
-			motor->enablePort[1] = MOTOR1_EN2_GPIO_Port;
+			motor->phaseChannel[1] 	= 	TIM_CHANNEL_2;
+			motor->phasePin[1] 		= 	MOTOR1_IN2_Pin;
+			motor->phasePort[1] 	= 	MOTOR1_IN2_GPIO_Port;
+			motor->enablePin[1] 	= 	MOTOR1_EN2_Pin;
+			motor->enablePort[1] 	= 	MOTOR1_EN2_GPIO_Port;
 
-			motor->phaseChannel[2] = TIM_CHANNEL_3;
-			motor->phasePin[2] = MOTOR1_IN3_Pin;
-			motor->phasePort[2] = MOTOR1_IN3_GPIO_Port;
-			motor->enablePin[2] = MOTOR1_EN3_Pin;
-			motor->enablePort[2] = MOTOR1_EN2_GPIO_Port;
+			motor->phaseChannel[2] 	=	TIM_CHANNEL_3;
+			motor->phasePin[2] 		=	MOTOR1_IN3_Pin;
+			motor->phasePort[2]		=	MOTOR1_IN3_GPIO_Port;
+			motor->enablePin[2]		=	MOTOR1_EN3_Pin;
+			motor->enablePort[2]	=	MOTOR1_EN3_GPIO_Port;
+
+			motor->nResetPort		=	MOTOR1_NRESET_GPIO_Port;
+			motor->nResetPin		=	MOTOR1_NRESET_Pin;
+			motor->nFaultPort		=	MOTOR1_NFAULT_GPIO_Port;
+			motor->nFaultPin		=	MOTOR1_NFAULT_Pin;
+
 			break;
 		}
-		case YAW_MOTOR:
+		case PITCH_MOTOR:
 		{
 			motor->timer = &htim3;
 
-			motor->phaseChannel[0] = TIM_CHANNEL_1;
-			motor->phasePin[0] = MOTOR2_IN1_Pin;
-			motor->phasePort[0] = MOTOR2_IN1_GPIO_Port;
-			motor->enablePin[0] = MOTOR2_EN1_Pin;
-			motor->enablePort[0] = MOTOR2_EN1_GPIO_Port;
+			motor->phaseChannel[0]	=	TIM_CHANNEL_1;
+			motor->phasePin[0]		=	MOTOR2_IN1_Pin;
+			motor->phasePort[0]		=	MOTOR2_IN1_GPIO_Port;
+			motor->enablePin[0]		=	MOTOR2_EN1_Pin;
+			motor->enablePort[0]	=	MOTOR2_EN1_GPIO_Port;
 
-			motor->phaseChannel[1] = TIM_CHANNEL_2;
-			motor->phasePin[1] = MOTOR2_IN2_Pin;
-			motor->phasePort[1] = MOTOR2_IN2_GPIO_Port;
-			motor->enablePin[1] = MOTOR2_EN2_Pin;
-			motor->enablePort[1] = MOTOR2_EN2_GPIO_Port;
+			motor->phaseChannel[1]	=	TIM_CHANNEL_2;
+			motor->phasePin[1]		=	MOTOR2_IN2_Pin;
+			motor->phasePort[1]		=	MOTOR2_IN2_GPIO_Port;
+			motor->enablePin[1]		=	MOTOR2_EN2_Pin;
+			motor->enablePort[1]	=	MOTOR2_EN2_GPIO_Port;
 
-			motor->phaseChannel[2] = TIM_CHANNEL_3;
-			motor->phasePin[2] = MOTOR2_IN3_Pin;
-			motor->phasePort[2] = MOTOR2_IN3_GPIO_Port;
-			motor->enablePin[2] = MOTOR2_EN3_Pin;
-			motor->enablePort[2] = MOTOR2_EN3_GPIO_Port;
+			motor->phaseChannel[2]	=	TIM_CHANNEL_3;
+			motor->phasePin[2]		=	MOTOR2_IN3_Pin;
+			motor->phasePort[2]		=	MOTOR2_IN3_GPIO_Port;
+			motor->enablePin[2]		=	MOTOR2_EN3_Pin;
+			motor->enablePort[2]	=	MOTOR2_EN3_GPIO_Port;
+
+			motor->nResetPort		=	MOTOR2_NRESET_GPIO_Port;
+			motor->nResetPin		=	MOTOR2_NRESET_Pin;
+			motor->nFaultPort		=	MOTOR2_NFAULT_GPIO_Port;
+			motor->nFaultPin		=	MOTOR2_NFAULT_Pin;
+
 			break;
 		}
 		case ROLL_MOTOR:
 		{
 			motor->timer = &htim4;
 
-			motor->phaseChannel[0] = TIM_CHANNEL_1;
-			motor->phasePin[0] = MOTOR3_IN1_Pin;
-			motor->phasePort[0] = MOTOR3_IN1_GPIO_Port;
-			motor->enablePin[0] = MOTOR3_EN1_Pin;
-			motor->enablePort[0] = MOTOR3_EN1_GPIO_Port;
+			motor->phaseChannel[0]	=	TIM_CHANNEL_1;
+			motor->phasePin[0]		=	MOTOR3_IN1_Pin;
+			motor->phasePort[0]		=	MOTOR3_IN1_GPIO_Port;
+			motor->enablePin[0]		=	MOTOR3_EN1_Pin;
+			motor->enablePort[0]	=	MOTOR3_EN1_GPIO_Port;
 
-			motor->phaseChannel[1] = TIM_CHANNEL_2;
-			motor->phasePin[1] = MOTOR3_IN2_Pin;
-			motor->phasePort[1] = MOTOR3_IN2_GPIO_Port;
-			motor->enablePin[1] = MOTOR3_EN2_Pin;
-			motor->enablePort[1] = MOTOR3_EN2_GPIO_Port;
+			motor->phaseChannel[1]	=	TIM_CHANNEL_2;
+			motor->phasePin[1]		=	MOTOR3_IN2_Pin;
+			motor->phasePort[1]		=	MOTOR3_IN2_GPIO_Port;
+			motor->enablePin[1]		=	MOTOR3_EN2_Pin;
+			motor->enablePort[1]	=	MOTOR3_EN2_GPIO_Port;
 
-			motor->phaseChannel[2] = TIM_CHANNEL_3;
-			motor->phasePin[2] = MOTOR3_IN3_Pin;
-			motor->phasePort[2] = MOTOR3_IN3_GPIO_Port;;
-			motor->enablePin[2] = MOTOR2_EN3_Pin;
-			motor->enablePort[2] = MOTOR3_EN3_GPIO_Port;
+			motor->phaseChannel[2]	=	TIM_CHANNEL_3;
+			motor->phasePin[2]		=	MOTOR3_IN3_Pin;
+			motor->phasePort[2]		=	MOTOR3_IN3_GPIO_Port;;
+			motor->enablePin[2]		=	MOTOR3_EN3_Pin;
+			motor->enablePort[2]	=	MOTOR3_EN3_GPIO_Port;
+
+			motor->nResetPort		=	MOTOR3_NRESET_GPIO_Port;
+			motor->nResetPin		=	MOTOR3_NRESET_Pin;
+			motor->nFaultPort		=	MOTOR3_NFAULT_GPIO_Port;
+			motor->nFaultPin		=	MOTOR3_NFAULT_Pin;
+
 			break;
 		}
 	}
+
+	Motor_EnableDriver(motor);
 }
 
-void Set_Operation_Mode(Motor_Handle_t motor, Operation_Mode_t mode)
+void Motor_SetOperationMode(MotorHandle_t motor, MotorOperationMode_t mode)
 {
 	HAL_TIM_PWM_Stop(motor->timer, motor->phaseChannel[0]);
 	HAL_TIM_PWM_Stop(motor->timer, motor->phaseChannel[1]);
@@ -146,9 +166,9 @@ void Set_Operation_Mode(Motor_Handle_t motor, Operation_Mode_t mode)
 	motor->mode = mode;
 }
 
-void Commutate_Motor(Motor_Handle_t motor)
+void Motor_Commutate(MotorHandle_t motor)
 {
-	if(motor->direction == TURN_CW)
+	if(motor->direction == MOTOR_TURN_CW)
 	{
 		motor->phaseIndex[0]++;
 		if(motor->phaseIndex[0] >= NUM_STEPS) motor->phaseIndex[0] = 0;
@@ -169,10 +189,10 @@ void Commutate_Motor(Motor_Handle_t motor)
 		motor->phaseIndex[2] = motor->phaseIndex[2] <= 0 ? (NUM_STEPS - 1) : (motor->phaseIndex[2] - 1);
 	}
 
-	Run_Motor(motor);
+	Motor_Run(motor);
 }
 
-void Run_Motor(Motor_Handle_t motor)
+void Motor_Run(MotorHandle_t motor)
 {
 	if(waveform[motor->phaseIndex[0]] != 0)
 	{
@@ -208,8 +228,18 @@ void Run_Motor(Motor_Handle_t motor)
 	}
 }
 
-void Set_Motor_Parameters(Motor_Handle_t motor, uint8_t direction, uint8_t pulse)
+void Motor_SetParams(MotorHandle_t motor, MotorDirection_t direction, uint8_t pulse)
 {
 	motor->direction = direction;
 	motor->maxPulseSize = pulse;
+}
+
+void Motor_EnableDriver(MotorHandle_t motor)
+{
+	HAL_GPIO_WritePin(motor->nResetPort, motor->nResetPin, GPIO_PIN_SET);
+}
+
+void Motor_DisableDriver(MotorHandle_t motor)
+{
+	HAL_GPIO_WritePin(motor->nResetPort, motor->nResetPin, GPIO_PIN_RESET);
 }

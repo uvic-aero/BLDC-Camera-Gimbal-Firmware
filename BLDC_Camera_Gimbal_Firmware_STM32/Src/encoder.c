@@ -8,7 +8,9 @@
 #include "encoder.h"
 #include "angles.h"
 
-void Encoder_Init(Encoder_Handle_t encoder, Encoder_Identity_t identity, uint16_t pinconfig)
+extern I2C_HandleTypeDef hi2c1;
+
+void Encoder_Init(EncoderHandle_t encoder, EncoderIdentity_t identity, EncoderAddrConfig_t pinconfig)
 {
 	encoder->identity = identity;
 	encoder->i2c = &hi2c1;
@@ -16,7 +18,7 @@ void Encoder_Init(Encoder_Handle_t encoder, Encoder_Identity_t identity, uint16_
 	encoder->zeroPosition = 0.0;
 
 	encoder->A1A2PinConfig = pinconfig;
-	encoder->address = (ENCODER_ADDRESS_BASE | encoder->A1A2PinConfig);
+	encoder->address = (ENCODER_ADDRESS_BASE | (uint8_t)(encoder->A1A2PinConfig));
 
 	encoder->dataHigh = 0x0;
 	encoder->dataLow = 0x0;
@@ -25,7 +27,7 @@ void Encoder_Init(Encoder_Handle_t encoder, Encoder_Identity_t identity, uint16_
 	encoder->angleFloat = 0.0;
 }
 
-float Poll_Encoder(Encoder_Handle_t encoder)
+float Encoder_GetAngle(EncoderHandle_t encoder)
 {
 	HAL_I2C_Mem_Read(encoder->i2c, (encoder->address << 1), MEM_ANGLE_ADDRESS_HIGH, MEM_SIZE, &encoder->dataHigh, DATA_SIZE, TIMEOUT);
 	HAL_I2C_Mem_Read(encoder->i2c, (encoder->address << 1), MEM_ANGLE_ADDRESS_LOW, MEM_SIZE, &encoder->dataLow, DATA_SIZE, TIMEOUT);
@@ -42,7 +44,7 @@ float Poll_Encoder(Encoder_Handle_t encoder)
 	return encoder->angleFloat;
 }
 
-void Set_Zero_Position(Encoder_Handle_t encoder, float zeropos)
+void Encoder_SetZeroPosition(EncoderHandle_t encoder, float zeropos)
 {
 	encoder->zeroPosition = zeropos;
 }
