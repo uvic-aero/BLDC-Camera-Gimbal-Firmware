@@ -40,7 +40,7 @@ void Motor_Init(Motor_Handle_t motor, Motor_Identity_t identity)
 
 	switch(identity)
 	{
-		case PITCH_MOTOR:
+		case YAW_MOTOR:
 		{
 			motor->timer = &htim1;
 
@@ -62,9 +62,14 @@ void Motor_Init(Motor_Handle_t motor, Motor_Identity_t identity)
 			motor->enablePin[2]		=	MOTOR1_EN3_Pin;
 			motor->enablePort[2]	=	MOTOR1_EN3_GPIO_Port;
 
+			motor->nResetPort		=	MOTOR1_NRESET_GPIO_Port;
+			motor->nResetPin		=	MOTOR1_NRESET_Pin;
+			motor->nFaultPort		=	MOTOR1_NFAULT_GPIO_Port;
+			motor->nFaultPin		=	MOTOR1_NFAULT_Pin;
+
 			break;
 		}
-		case YAW_MOTOR:
+		case PITCH_MOTOR:
 		{
 			motor->timer = &htim3;
 
@@ -85,6 +90,11 @@ void Motor_Init(Motor_Handle_t motor, Motor_Identity_t identity)
 			motor->phasePort[2]		=	MOTOR2_IN3_GPIO_Port;
 			motor->enablePin[2]		=	MOTOR2_EN3_Pin;
 			motor->enablePort[2]	=	MOTOR2_EN3_GPIO_Port;
+
+			motor->nResetPort		=	MOTOR2_NRESET_GPIO_Port;
+			motor->nResetPin		=	MOTOR2_NRESET_Pin;
+			motor->nFaultPort		=	MOTOR2_NFAULT_GPIO_Port;
+			motor->nFaultPin		=	MOTOR2_NFAULT_Pin;
 
 			break;
 		}
@@ -110,9 +120,16 @@ void Motor_Init(Motor_Handle_t motor, Motor_Identity_t identity)
 			motor->enablePin[2]		=	MOTOR3_EN3_Pin;
 			motor->enablePort[2]	=	MOTOR3_EN3_GPIO_Port;
 
+			motor->nResetPort		=	MOTOR3_NRESET_GPIO_Port;
+			motor->nResetPin		=	MOTOR3_NRESET_Pin;
+			motor->nFaultPort		=	MOTOR3_NFAULT_GPIO_Port;
+			motor->nFaultPin		=	MOTOR3_NFAULT_Pin;
+
 			break;
 		}
 	}
+
+	Motor_EnableDriver(motor);
 }
 
 void Set_Operation_Mode(Motor_Handle_t motor, Operation_Mode_t mode)
@@ -215,4 +232,14 @@ void Set_Motor_Parameters(Motor_Handle_t motor, uint8_t direction, uint8_t pulse
 {
 	motor->direction = direction;
 	motor->maxPulseSize = pulse;
+}
+
+void Motor_EnableDriver(Motor_Handle_t motor)
+{
+	HAL_GPIO_WritePin(motor->nResetPort, motor->nResetPin, GPIO_PIN_SET);
+}
+
+void Motor_DisableDriver(Motor_Handle_t motor)
+{
+	HAL_GPIO_WritePin(motor->nResetPort, motor->nResetPin, GPIO_PIN_RESET);
 }

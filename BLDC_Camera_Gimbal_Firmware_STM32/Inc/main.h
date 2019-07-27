@@ -151,18 +151,24 @@ void Error_Handler(void);
 #define MOTOR1_EN2_GPIO_Port GPIOB
 /* USER CODE BEGIN Private defines */
 
+// GLOBAL CONTROL LOOP PERIOD AND FREQUENCY
+#define CTRL_PERIOD_S				(0.01f) //s
+#define CTRL_PERIOD_MS				(10)		// ms
+#define CTRL_FREQ_HZ				(100)	//Hz
+
+
 // IMU GLOBAL CONFIGS
 #define IMU_I2C_CHANNEL			hi2c2
 #define AXIS_IMU_ADDR			(0x68)
 #define BASE_IMU_ADDR			(0x69)
-#define IMU_DMP_FIFO_OUTPUT_RATE (100) // HZ: min 1, max 200
+#define IMU_DMP_FIFO_OUTPUT_RATE (CTRL_FREQ_HZ) // HZ: min 1, max 200
 #define AXIS_IMU_EXTI_LINE		EXTI15_10_IRQn
 
 
 // ENCODER GLOBAL CONFIGS
 #define ENCODER_I2C_CHANNEL		hi2c1
-#define ENCODER_PITCH_I2C_ADDR 	(0x2)
-#define ENCODER_YAW_I2C_ADDR	(0x3)
+#define ENCODER_PITCH_I2C_ADDR 	(0x3)
+#define ENCODER_YAW_I2C_ADDR	(0x0)
 #define ENCODER_ROLL_I2C_ADDR	(0x1)
 
 // CONTROL LOOP GLOBAL CONFIGS
@@ -203,6 +209,14 @@ void Error_Handler(void);
 #define YAW_MOTOR_KP					(8.0f)
 #define YAW_MOTOR_KD					(0.0f)
 #define YAW_MOTOR_KI					(0.0f)
+
+#define ROLL_MOTOR_KP					(8.0f)
+#define ROLL_MOTOR_KD					(0.0f)
+#define ROLL_MOTOR_KI					(0.0f)
+
+#define PITCH_MOTOR_KP					(8.0f)
+#define PITCH_MOTOR_KD					(0.0f)
+#define PITCH_MOTOR_KI					(0.0f)
 
 /* USER CODE END Private defines */
 
