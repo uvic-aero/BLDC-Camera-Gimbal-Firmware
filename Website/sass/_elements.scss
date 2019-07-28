@@ -454,16 +454,18 @@ h6 {
 .unordered-list {
     li {
         position: relative;
-        padding-left: 30px;
+        padding-left: 20px;
         line-height: 1.82em !important;
+        color: #888888;
         &:before {
             content: "";
             position: absolute;
-            width: 14px;
-            height: 14px;
-            border: 3px solid $primary;
+            width: 7px;
+            height: 7px;
+            border: 1px solid $primary;
+            border: 1px solid #888888;
             background: $white;
-            top: 4px;
+            top: 9px;
             left: 0;
             border-radius: 50%;
         }

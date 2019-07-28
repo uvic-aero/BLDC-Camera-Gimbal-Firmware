@@ -65,39 +65,39 @@
         @media #{$medium_device}{
         
         }
-        &:after{
-            position: absolute;
-            right: 16%;
-            top: 59px;
-            width: 148px;
-            height: 124px;
-            background-image: url(../img/quote.png);
-            content: "";
-            background-size: cover;
-            background-repeat: no-repeat;
-            z-index: -1;
-            @media #{$small_mobile}{
-                width: 53px;
-                height: 45px;
-                right: 25%;
-                top: 30px;
-            }
-            @media #{$large_mobile}{
-                width: 53px;
-                height: 45px;
-                right: 25%;
-                top: 30px;
-            }
-            @media #{$tab_device}{
-                width: 53px;
-                height: 45px;
-                right: 25%;
-                top: 30px;
-            }
-            @media #{$medium_device}{
+        // &:after{
+        //     position: absolute;
+        //     right: 16%;
+        //     top: 59px;
+        //     width: 148px;
+        //     height: 124px;
+        //     background-image: url(../img/quote.png);
+        //     content: "";
+        //     background-size: cover;
+        //     background-repeat: no-repeat;
+        //     z-index: -1;
+        //     @media #{$small_mobile}{
+        //         width: 53px;
+        //         height: 45px;
+        //         right: 25%;
+        //         top: 30px;
+        //     }
+        //     @media #{$large_mobile}{
+        //         width: 53px;
+        //         height: 45px;
+        //         right: 25%;
+        //         top: 30px;
+        //     }
+        //     @media #{$tab_device}{
+        //         width: 53px;
+        //         height: 45px;
+        //         right: 25%;
+        //         top: 30px;
+        //     }
+        //     @media #{$medium_device}{
             
-            }
-        }
+        //     }
+        // }
           
     }
     .owl-dots {

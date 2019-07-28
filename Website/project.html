@@ -5,7 +5,7 @@
     <!-- Required meta tags -->
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>Etrain</title>
+    <title>BLDC Camera Gimbal</title>
     <link rel="icon" href="img/favicon.png">
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="css/bootstrap.min.css">
@@ -52,7 +52,7 @@
                                     <a class="nav-link" href="about.html">About</a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link" href="contact.html">References</a>
+                                    <a class="nav-link" href="references.html">References</a>
                                 </li>
                             </ul>
                         </div>
@@ -95,42 +95,75 @@
         <div class="whole-wrap">
             <div class="container box_1170">
                 <div class="section-top-border">
-                    <h3 class="mb-30">Left Aligned</h3>
+                    <h3 class="mb-30">Problem Definition</h3>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="single-defination">
+                                <h4 class="mb-20">What is a Gimbal?</h4>
+                                <p>A gimbal is a mechanical assembly with multiple axes of rotation, which allows an
+                                object placed at the centre to remain stationary as the frame moves freely. Gimbals find
+                                applications in many domains where stabilization is necessary. 
+                                </p>
+                                <p>Image capture, as an
+                                example, requires the compensation of vibration and movement to reduce image blurring
+                                during capture, and gimbals have often been used for this purpose.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="single-defination">
+                                <h4 class="mb-20">Our Target Audience</h4>
+                                <p>UVic AERO competes in an annual competition for Unmanned Aerial Vehicles (UAV’s), run by Unmanned Systems Canada. The competition awards more points for more custom solutions.</p>
+                                <p>This project was undertaken because it will enable UVic AERO to mount complex 
+                                    payloads and undertake missions where real-time, high-resolution footage is critical.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="single-defination">
+                                <h4 class="mb-20">Uvic AERO's Problem</h4>
+                                <p>
+                                    The problem as formulated by AERO is to design the hardware and firmware of an
+                                    electronic control system for an existing Brushless DC (BLDC) electric motor camera
+                                    gimbal, whose capabilities and characteristics should include:
+                                    <ul class="unordered-list">
+                                        <li>Stabilizing at the pitch and yaw of a payload consisting of a camera</li>
+                                        <li>Smoothing movement to eliminate jitter from the image acquisition system</li>
+                                        <li>Receiving and obeying pan and tilt commands at a distance</li>
+                                        <li>Controlling BLDC motor angular position to achieve stabilization and executing pan and tilt commands </li>
+                                        <li>Autonomous tracking of objects</li>
+                                        <li>Integrate into AERO’s existing infrastructure and ecosystem </li>
+                                    </ul>
+                                </p>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                <div class="section-top-border">
+                    <h3 class="mb-30">Hardware Architecture</h3>
                     <div class="row">
                         <div class="col-md-3">
                             <img src="img/elements/d.jpg" alt="" class="img-fluid">
                         </div>
                         <div class="col-md-9 mt-sm-20">
-                            <p>Recently, the US Federal government banned online casinos from operating in America by making
-                                it
-                                illegal to
-                                transfer money to them through any US bank or payment system. As a result of this law, most
-                                of the
-                                popular
-                                online casino networks such as Party Gaming and PlayTech left the United States. Overnight,
-                                online
-                                casino
-                                players found themselves being chased by the Federal government. But, after a fortnight, the
-                                online
-                                casino
-                                industry came up with a solution and new online casinos started taking root. These began to
-                                operate
-                                under a
-                                different business umbrella, and by doing that, rendered the transfer of money to and from
-                                them
-                                legal. A major
-                                part of this was enlisting electronic banking systems that would accept this new
-                                clarification and
-                                start doing
-                                business with me. Listed in this article are the electronic banking systems that accept
-                                players from
-                                the United
-                                States that wish to play in online casinos.</p>
+                            <p class="mb-2">A gimbal is a mechanical assembly with multiple axes of rotation, which allows an
+                                object placed at the centre to remain stationary as the frame moves freely. Gimbals find
+                                applications in many domains where stabilization is necessary. Image capture, as an
+                                example, requires the compensation of vibration and movement to reduce image blurring
+                                during capture, and gimbals have often been used for this purpose.
+                            </p>
+                            <p class="mb-2">The problem as formulated by AERO is to design the hardware and firmware of an 
+electronic control system for an existing Brushless DC (BLDC) electric motor camera 
+gimbal, whose capabilities and characteristics should include: </p>
+                            <p class="mb-2">
+                                Modern gimbals often use motors to trigger rotations about the axes of freedom. This has the added advantage of
+                                enabling an operator to change the target direction of the camera, often known as pan and
+                                tilt, or pitch and yaw.
+                            </p>
                         </div>
                     </div>
                 </div>
                 <div class="section-top-border text-right">
-                    <h3 class="mb-30">Right Aligned</h3>
+                    <h3 class="mb-30">Firmware Architecture</h3>
                     <div class="row">
                         <div class="col-md-9">
                             <p class="text-right">Over time, even the most sophisticated, memory packed computer can begin
@@ -160,7 +193,60 @@
                     </div>
                 </div>
                 <div class="section-top-border">
-                    <h3 class="mb-30">Left Aligned</h3>
+                    <h3 class="mb-30">Object Tracking Architecture</h3>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <img src="img/elements/d.jpg" alt="" class="img-fluid">
+                        </div>
+                        <div class="col-md-9 mt-sm-20">
+                            <p class="mb-2 text-body"> In 2016, AERO built a camera gimbal for image stabilization and capture. 
+                                At the time, only the mechanical design was completed, and was based on brushless DC 
+                                motors. An off-the-shelf hobbyist, closed-source hardware-firmware control solution was 
+                                purchased. While the system worked, it lacked several desirable features, such as software-
+                                based control, object tracking and extensibility.
+                            </p>
+                            <p class="mb-2 text-body">In 2017, a system failure prompted the exploration of pursuing an in-house control solution.</p>
+                            <p class="mb-2 text-body">
+                                The project was undertaken because it will enable UVic AERO to 
+                                mount complex payloads and undertake missions where real-time, high-resolution footage 
+                                is critical. Past AERO missions would have benefited from this system – for example, solar 
+                                farm damage monitoring. 
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="section-top-border text-right">
+                    <h3 class="mb-30">Hardware Components</h3>
+                    <div class="row">
+                        <div class="col-md-9">
+                            <p class="text-right">Over time, even the most sophisticated, memory packed computer can begin
+                                to run
+                                slow if we
+                                don’t do something to prevent it. The reason why has less to do with how computers are made
+                                and how
+                                they age and
+                                more to do with the way we use them. You see, all of the daily tasks that we do on our PC
+                                from
+                                running programs
+                                to downloading and deleting software can make our computer sluggish. To keep this from
+                                happening,
+                                you need to
+                                understand the reasons why your PC is getting slower and do something to keep your PC
+                                running at its
+                                best. You
+                                can do this through regular maintenance and PC performance optimization programs</p>
+                            <p class="text-right">Before we discuss all of the things that could be affecting your PC’s
+                                performance,
+                                let’s
+                                talk a little about what symptoms</p>
+                        </div>
+                        <div class="col-md-3">
+                            <img src="img/elements/d.jpg" alt="" class="img-fluid">
+                        </div>
+                    </div>
+                </div>
+                <div class="section-top-border">
+                    <h3 class="mb-30">Placeholder for Extra Stuff</h3>
                     <div class="row">
                         <div class="col-md-3">
                             <img src="img/elements/d.jpg" alt="" class="img-fluid">
@@ -196,7 +282,7 @@
     
                 </div>
                 <div class="section-top-border text-right">
-                    <h3 class="mb-30">Right Aligned</h3>
+                    <h3 class="mb-30">Another Placeholder</h3>
                     <div class="row">
                         <div class="col-md-9">
                             <p class="text-right">Over time, even the most sophisticated, memory packed computer can begin
@@ -226,7 +312,7 @@
                     </div>
                 </div>
                 <div class="section-top-border">
-                    <h3>Image Gallery</h3>
+                    <h3>Gimbal Image Gallery</h3>
                     <div class="row gallery-item">
                         <div class="col-md-4">
                             <a href="img/elements/g1.jpg" class="img-pop-up">
@@ -270,121 +356,25 @@
                         </div>
                     </div>
                 </div>
+                <div class="container">
+                    <div class="row justify-content-center">
+                        <div class="col-xl-5">
+                            <div class="section_tittle text-center">
+                                <p>Watch the Gimbal in Action</p>
+                                <h2>Gimbal Demonstration</h2>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="embed-responsive embed-responsive-16by9">
+                    <iframe class="embed-responsive-item" src="https://www.youtube.com/embed/zpOULjyy-n8?rel=0" allowfullscreen></iframe>
+                </div>
             </div>
     
         </div>
     </section>
     <!--::blog_part end::-->
 
-    <!-- Team Profile Start -->
-    <section class="special_cource padding_top">
-        <div class="container">
-            <div class="row">
-                <div class="col-sm-6 col-lg-4">
-                    <div class="single_special_cource">
-                        <img src="img/special_cource_1.png" class="special_img" alt="">
-                        <div class="special_cource_text">
-                            <a href="course-details.html" class="btn_4">Web Development</a>
-                            <h4>$130.00</h4>
-                            <a href="course-details.html">
-                                <h3>Web Development</h3>
-                            </a>
-                            <p>Which whose darkness saying were life unto fish wherein all fish of together called</p>
-                            <div class="author_info">
-                                <div class="author_img">
-                                    <img src="img/author/author_1.png" alt="">
-                                    <div class="author_info_text">
-                                        <p>Conduct by:</p>
-                                        <h5><a href="#">James Well</a></h5>
-                                    </div>
-                                </div>
-                                <div class="author_rating">
-                                    <div class="rating">
-                                        <a href="#"><img src="img/icon/color_star.svg" alt=""></a>
-                                        <a href="#"><img src="img/icon/color_star.svg" alt=""></a>
-                                        <a href="#"><img src="img/icon/color_star.svg" alt=""></a>
-                                        <a href="#"><img src="img/icon/color_star.svg" alt=""></a>
-                                        <a href="#"><img src="img/icon/star.svg" alt=""></a>
-                                    </div>
-                                    <p>3.8 Ratings</p>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-                <div class="col-sm-6 col-lg-4">
-                    <div class="single_special_cource">
-                        <img src="img/special_cource_2.png" class="special_img" alt="">
-                        <div class="special_cource_text">
-                            <a href="course-details.html" class="btn_4">design</a>
-                            <h4>$160.00</h4>
-                            <a href="course-details.html">
-                                <h3>Web UX/UI Design </h3>
-                            </a>
-                            <p>Which whose darkness saying were life unto fish wherein all fish of together called</p>
-                            <div class="author_info">
-                                <div class="author_img">
-                                    <img src="img/author/author_2.png" alt="">
-                                    <div class="author_info_text">
-                                        <p>Conduct by:</p>
-                                        <h5><a href="#">James Well</a></h5>
-                                    </div>
-                                </div>
-                                <div class="author_rating">
-                                    <div class="rating">
-                                        <a href="#"><img src="img/icon/color_star.svg" alt=""></a>
-                                        <a href="#"><img src="img/icon/color_star.svg" alt=""></a>
-                                        <a href="#"><img src="img/icon/color_star.svg" alt=""></a>
-                                        <a href="#"><img src="img/icon/color_star.svg" alt=""></a>
-                                        <a href="#"><img src="img/icon/star.svg" alt=""></a>
-                                    </div>
-                                    <p>3.8 Ratings</p>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-                <div class="col-sm-6 col-lg-4">
-                    <div class="single_special_cource">
-                        <img src="img/special_cource_3.png" class="special_img" alt="">
-                        <div class="special_cource_text">
-                            <a href="course-details.html" class="btn_4">Wordpress</a>
-                            <h4>$140.00</h4>
-                            <a href="course-details.html">
-                                <h3>Wordpress Development</h3>
-                            </a>
-                            <p>Which whose darkness saying were life unto fish wherein all fish of together called</p>
-                            <div class="author_info">
-                                <div class="author_img">
-                                    <img src="img/author/author_3.png" alt="">
-                                    <div class="author_info_text">
-                                        <p>Conduct by:</p>
-                                        <h5><a href="#">James Well</a></h5>
-                                    </div>
-                                </div>
-                                <div class="author_rating">
-                                    <div class="rating">
-                                        <a href="#"><img src="img/icon/color_star.svg" alt=""></a>
-                                        <a href="#"><img src="img/icon/color_star.svg" alt=""></a>
-                                        <a href="#"><img src="img/icon/color_star.svg" alt=""></a>
-                                        <a href="#"><img src="img/icon/color_star.svg" alt=""></a>
-                                        <a href="#"><img src="img/icon/star.svg" alt=""></a>
-                                    </div>
-                                    <p>3.8 Ratings</p>
-                                </div>
-                            </div>
-                        </div>
-
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-    <!-- Team Profile end -->
-
-    
     
     <!-- footer part start-->
     <footer class="footer-area">
