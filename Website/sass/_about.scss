@@ -1,0 +1,88 @@
+/**************** about css start ****************/
+.about_part{
+    position: relative;
+    z-index: 1;
+    padding: 70px 0px 140px;
+    background-image: url(../img/about_overlay.png);
+    background-repeat: no-repeat;
+    background-position: left;
+    background-size: 33% 73%;
+    @media #{$small_mobile}{
+        padding: 70px 0px 70px;
+        background-position: top;
+        background-size: 100% 43%;
+    }
+    @media #{$large_mobile}{
+        padding: 70px 0px 70px;
+        background-position: top left;
+        background-size: 90% 56%;
+    }
+    @media #{$tab_device}{
+        padding: 70px 0px 70px;
+        background-position: left;
+        background-size: 48% 70%;
+    }
+    @media #{$medium_device}{
+       padding: 0px 0px 80px;
+    }
+    
+    .about_text{
+        @media #{$small_mobile}{
+            margin-top: 50px;
+        }
+        @media #{$large_mobile}{
+            margin-top: 50px;
+        }
+        @media #{$tab_device}{
+            margin-top: 50px;
+        }
+        @media #{$medium_device}{
+           
+        }
+        h4{
+            margin-bottom: 32px;
+            color: rgb(255, 126, 95);
+            font-size: 22px;
+            font-style: italic;
+            font-family: $font_stack_2;     
+            font-weight: 300; 
+            @media #{$small_mobile}{
+                margin-bottom: 20px;
+                font-size: 17px;
+            }
+            @media #{$large_mobile}{
+                margin-bottom: 20px;
+                font-size: 17px;
+            }
+            @media #{$tab_device}{
+                margin-bottom: 20px;
+                font-size: 17px;
+            }
+            @media #{$medium_device}{
+                margin-bottom: 20px;
+                font-size: 17px;
+            }       
+        }
+        h2{
+            line-height: 1.25;
+            margin-bottom: 35px;
+            @media #{$small_mobile}{
+                margin-bottom: 15px;
+            }
+            @media #{$large_mobile}{
+                margin-bottom: 15px;
+            }
+            @media #{$tab_device}{
+                font-size: 25px;  
+                margin-bottom: 15px;
+            }
+            @media #{$medium_device}{
+                font-size: 30px;  
+                margin-bottom: 15px;
+            }
+        }
+        p{
+            margin-top: 13px;
+        }
+    }
+}

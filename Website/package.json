@@ -1,0 +1,15 @@
+{
+  "name": "projectwebsite",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "node-sass": "^4.12.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "compile-sass": "node-sass --watch ./sass -o ./css"
+  },
+  "author": "",
+  "license": "ISC"
+}
