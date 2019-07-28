@@ -29,8 +29,10 @@ data = []
 message = []
 event = []
 
-total_data_bytes = ( 3 * (4) ) + 5 # 4 data messages (of 3 bytes each) - sysTime total bytes (5 bytes)
+# 4 data messages (of 3 bytes each) + sysTime total bytes (5 bytes)
+total_data_bytes = ( 3 * (4) ) + 5
 total_event_bytes = 2
+
 # https://docs.python.org/2/library/struct.html
 data_size_byte = struct.pack('>B', int(total_data_bytes))
 event_size_byte = struct.pack('>B', int(total_event_bytes))
