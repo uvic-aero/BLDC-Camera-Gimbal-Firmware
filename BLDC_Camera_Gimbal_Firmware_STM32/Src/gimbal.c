@@ -158,7 +158,7 @@ void Gimbal_InitTasks(void)
 	xTaskCreate(vRcYawHandler, "RcYaw", configMINIMAL_STACK_SIZE, NULL, PRIO_RC, &xTaskRcYaw);
 	xTaskCreate(vGimbalControlLoopTask, "CtrlLoop", configMINIMAL_STACK_SIZE, NULL, PRIO_CONTROL, &xTaskGimbalControl);
 	xTaskCreate(vTargetSettingTask, "TargetSet", configMINIMAL_STACK_SIZE, NULL, PRIO_TARGETSET, &xTaskTargetSet );
-	//xTaskCreate(vMotorPitchCommutationTask, "MPitchCom", configMINIMAL_STACK_SIZE, NULL, PRIO_MOTOR, &xTaskMotorPitch);
+	xTaskCreate(vMotorPitchCommutationTask, "MPitchCom", configMINIMAL_STACK_SIZE, NULL, PRIO_MOTOR, &xTaskMotorPitch);
 	xTaskCreate(vMotorRollCommutationTask, "MRollCom", configMINIMAL_STACK_SIZE, NULL, PRIO_MOTOR, &xTaskMotorRoll);
 	/// others...
 }
@@ -232,7 +232,7 @@ void vGimbalControlLoopTask(void* pvParameters)
 
 		// send to motor // TODO: other motors than yaw
 
-		//xQueueOverwrite(xMotorPitchCtrlQueue, (void*)&pitchCtrl);
+		xQueueOverwrite(xMotorPitchCtrlQueue, (void*)&pitchCtrl);
 		xQueueOverwrite(xMotorRollCtrlQueue, (void*)&rollCtrl);
 
 	}
@@ -331,8 +331,8 @@ void vRcModeHandler(void* pvParameters)
 void vMotorPitchCommutationTask(void* pvParameters)
 {
 
-	//Motor_SetOperationMode(&pitchMotor, COMMUTATE);
-	//Motor_SetParams(&pitchMotor, MOTOR_TURN_CCW, 0);
+	Motor_SetOperationMode(&pitchMotor, COMMUTATE);
+	Motor_SetParams(&pitchMotor, MOTOR_TURN_CCW, 0);
 	float speed = 0.0;
 	uint32_t delay = MOTOR_MAX_COMMUTATION_DELAY;
 	uint8_t pulse = 0;
@@ -344,8 +344,8 @@ void vMotorPitchCommutationTask(void* pvParameters)
 
 		Gimbal_CalcMotorParams(speed, &delay, &pulse, &dir);
 
-		//Motor_SetParams(&pitchMotor, dir, pulse);
-		//Motor_Commutate(&pitchMotor);
+		Motor_SetParams(&pitchMotor, dir, pulse);
+		Motor_Commutate(&pitchMotor);
 
 		// start interrupt for delay and wait for notification from TIM7 ISR
 		__HAL_TIM_SET_COUNTER(&htim16, 0xffff - (uint16_t)(delay & 0x0000FFFF));
@@ -405,13 +405,13 @@ void MOTOR_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	/////////////// PITCH WAKEUP ////////////////
 	if (htim->Instance == TIM16)
 	{
-		/*
+
 		HAL_TIM_Base_Stop_IT(&htim16);
 		// yield to motor commutation task
 		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 		vTaskNotifyGiveFromISR( xTaskMotorPitch, &xHigherPriorityTaskWoken );
 		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-		*/
+
 	}
 
 	/////////////// ROLL  WAKEUP /////////////////
@@ -478,7 +478,6 @@ static float Gimbal_CalcPID(PID_t* pid, float target, float current)
 
 static uint8_t Gimbal_CalcMotorPulse(float speed)
 {
-	//float pulse_val = 255.0 * sqrt(fabs(speed)) / sqrt(MOTOR_MAX_SPEED);
 	float pulse_val = (MOTOR_PULSE_RANGE) * (1.0 - exp(-MOTOR_PULSE_CURVE_VAL*fabs(speed) / MOTOR_MAX_SPEED)) + MOTOR_MIN_PULSE;
 	if (pulse_val > 255.0) pulse_val = 255.0;
 	return (uint8_t)fabs(pulse_val);
