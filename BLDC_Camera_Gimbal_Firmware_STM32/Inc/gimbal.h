@@ -49,7 +49,10 @@ void vGimbalControlLoopTask(void* pvParameters);
 void vTargetSettingTask(void* pvParameters);
 
 /// Motor commutation function
-void vMotorCommutationTask(void* pvParameters);
+void vMotorPitchCommutationTask(void* pvParameters);
+
+/// Motor commutation function
+void vMotorRollCommutationTask(void* pvParameters);
 
 /// RC Pitch input task
 void vRcPitchHandler(void* pvParameters);

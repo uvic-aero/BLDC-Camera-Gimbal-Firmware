@@ -175,8 +175,8 @@ void Error_Handler(void);
 #define ENABLED(__mode__)		((__mode__) == 1)
 #define DISABLED(__mode__)		((__mode__) == 0)
 
-#define MODE_1AXIS				(1)
-#define MODE_2AXIS				(0)
+#define MODE_1AXIS				(0)
+#define MODE_2AXIS				(1)
 #define MODE_3AXIS				(0)
 
 #if ENABLED(MODE_1AXIS) && (ENABLED(MODE_2AXIS) || ENABLED(MODE_3AXIS))

@@ -76,7 +76,7 @@ void IMU_Init(IMU_Handle_t imu, IMU_Identity_t ident)
 	// TODO: this may not be possible
 	// In the meantime, just "assert" that the correct setup is used
 
-	ASSERT_PRINT(ident != BASE_IMU, "Cannot use BASE IMU with current Invensense Driver");
+	//ASSERT_PRINT(ident != BASE_IMU, "Cannot use BASE IMU with current Invensense Driver");
 
 	switch(ident)
 	{
