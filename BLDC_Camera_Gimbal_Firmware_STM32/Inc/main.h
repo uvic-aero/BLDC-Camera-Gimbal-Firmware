@@ -175,8 +175,8 @@ void Error_Handler(void);
 #define ENABLED(__mode__)		((__mode__) == 1)
 #define DISABLED(__mode__)		((__mode__) == 0)
 
-#define MODE_1AXIS				(1)
-#define MODE_2AXIS				(0)
+#define MODE_1AXIS				(0)
+#define MODE_2AXIS				(1)
 #define MODE_3AXIS				(0)
 
 #if ENABLED(MODE_1AXIS) && (ENABLED(MODE_2AXIS) || ENABLED(MODE_3AXIS))
@@ -203,15 +203,15 @@ void Error_Handler(void);
 #define MOTOR_MIN_COMMUTATION_DELAY		(186) 		// us
 #define MOTOR_MIN_PULSE					(100)
 #define MOTOR_MAX_PULSE					(255)
-#define MOTOR_PULSE_CURVE_VAL			(2.0)
+#define MOTOR_PULSE_CURVE_VAL			(5.0)
 #define MOTOR_PULSE_RANGE				(MOTOR_MAX_PULSE - MOTOR_MIN_PULSE)
 
 #define YAW_MOTOR_KP					(8.0f)
 #define YAW_MOTOR_KD					(0.0f)
 #define YAW_MOTOR_KI					(0.0f)
 
-#define ROLL_MOTOR_KP					(8.0f)
-#define ROLL_MOTOR_KD					(0.0f)
+#define ROLL_MOTOR_KP					(4.0f)
+#define ROLL_MOTOR_KD					(0.5f)
 #define ROLL_MOTOR_KI					(0.0f)
 
 #define PITCH_MOTOR_KP					(8.0f)
