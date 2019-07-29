@@ -222,13 +222,12 @@ void vGimbalControlLoopTask(void* pvParameters)
 		yawCtrl 	= Gimbal_CalcPID(&yawPID, targetMotorPos.yaw, currMotorPos.yaw);
 		rollCtrl	= Gimbal_CalcPID(&rollPID, targetMotorPos.roll, currMotorPos.roll);
 
-
+#ifdef DEBUG
 		if (counter == 0)
 			printf("CM: %d, TM: %d, CI: %d, TI: %d\n",
 				(int)(currMotorPos.roll), (int)(targetMotorPos.roll), (int)(currCameraPos.roll), (int)(targetCameraPos.roll));
-
-
 		counter = (counter + 1) % 100;
+#endif
 
 		// send to motor // TODO: other motors than yaw
 
