@@ -210,8 +210,8 @@ void Error_Handler(void);
 #define YAW_MOTOR_KD					(0.0f)
 #define YAW_MOTOR_KI					(0.0f)
 
-#define ROLL_MOTOR_KP					(8.0f)
-#define ROLL_MOTOR_KD					(0.0f)
+#define ROLL_MOTOR_KP					(4.0f)
+#define ROLL_MOTOR_KD					(0.5f)
 #define ROLL_MOTOR_KI					(0.0f)
 
 #define PITCH_MOTOR_KP					(8.0f)

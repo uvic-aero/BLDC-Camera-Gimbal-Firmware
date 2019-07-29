@@ -158,7 +158,7 @@ void Gimbal_InitTasks(void)
 	xTaskCreate(vRcYawHandler, "RcYaw", configMINIMAL_STACK_SIZE, NULL, PRIO_RC, &xTaskRcYaw);
 	xTaskCreate(vGimbalControlLoopTask, "CtrlLoop", configMINIMAL_STACK_SIZE, NULL, PRIO_CONTROL, &xTaskGimbalControl);
 	xTaskCreate(vTargetSettingTask, "TargetSet", configMINIMAL_STACK_SIZE, NULL, PRIO_TARGETSET, &xTaskTargetSet );
-	xTaskCreate(vMotorPitchCommutationTask, "MPitchCom", configMINIMAL_STACK_SIZE, NULL, PRIO_MOTOR, &xTaskMotorPitch);
+	//xTaskCreate(vMotorPitchCommutationTask, "MPitchCom", configMINIMAL_STACK_SIZE, NULL, PRIO_MOTOR, &xTaskMotorPitch);
 	xTaskCreate(vMotorRollCommutationTask, "MRollCom", configMINIMAL_STACK_SIZE, NULL, PRIO_MOTOR, &xTaskMotorRoll);
 	/// others...
 }
@@ -231,10 +231,10 @@ void vGimbalControlLoopTask(void* pvParameters)
 		counter = (counter + 1) % 100;
 
 		// send to motor // TODO: other motors than yaw
-		/*
-		xQueueOverwrite(xMotorPitchCtrlQueue, (void*)&pitchCtrl);
+
+		//xQueueOverwrite(xMotorPitchCtrlQueue, (void*)&pitchCtrl);
 		xQueueOverwrite(xMotorRollCtrlQueue, (void*)&rollCtrl);
-		*/
+
 	}
 }
 
@@ -360,8 +360,8 @@ void vMotorPitchCommutationTask(void* pvParameters)
 void vMotorRollCommutationTask(void* pvParameters)
 {
 
-	//Motor_SetOperationMode(&rollMotor, COMMUTATE);
-	//Motor_SetParams(&rollMotor, MOTOR_TURN_CCW, 0);
+	Motor_SetOperationMode(&rollMotor, COMMUTATE);
+	Motor_SetParams(&rollMotor, MOTOR_TURN_CCW, 0);
 	float speed = 0.0;
 	uint32_t delay = MOTOR_MAX_COMMUTATION_DELAY;
 	uint8_t pulse = 0;
@@ -373,10 +373,10 @@ void vMotorRollCommutationTask(void* pvParameters)
 
 		Gimbal_CalcMotorParams(speed, &delay, &pulse, &dir);
 
-		//Motor_SetParams(&rollMotor, dir, pulse);
-		//Motor_Commutate(&rollMotor);
+		Motor_SetParams(&rollMotor, dir, pulse);
+		Motor_Commutate(&rollMotor);
 
-		// start interrupt for delay and wait for notification from TIM7 ISR
+		// start interrupt for delay and wait for notification from TIM17 ISR
 		__HAL_TIM_SET_COUNTER(&htim17, 0xffff - (uint16_t)(delay & 0x0000FFFF));
 		HAL_TIM_Base_Start_IT(&htim17);
 
@@ -415,15 +415,15 @@ void MOTOR_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	}
 
 	/////////////// ROLL  WAKEUP /////////////////
-	if (htim->Instance == TIM16)
+	if (htim->Instance == TIM17)
 	{
-		/*
+
 		HAL_TIM_Base_Stop_IT(&htim17);
 		// yield to motor commutation task
 		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
 		vTaskNotifyGiveFromISR( xTaskMotorRoll, &xHigherPriorityTaskWoken );
 		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
-		*/
+
 	}
 
 }
