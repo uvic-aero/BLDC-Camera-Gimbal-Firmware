@@ -2357,10 +2357,10 @@ ul {
       display: inline-block;
       border: 1px double #303030;
       border-radius: 50%;
-      width: 2em;
-      height: 2em;
+      width: 2.5em;
+      height: 2.5em;
       text-align: center;
-      padding: calc(0.5em); }
+      padding: calc(0.68em); }
     .special_cource .single_special_cource .special_cource_text .author_info .social-links a {
       color: #0c2e60;
       font-size: 1em;
