@@ -255,22 +255,22 @@ void vTargetSettingTask(void* pvParameters)
 		{
 			//printf("Target pan delta: %d\n", (int16_t)(targetPanDelta.value));
 			// add target to delta
-			targetPan += (float)(targetPanDelta.value);
+			targetPan += (float)((int16_t)(targetPanDelta.value));
 		}
 
 		if ( xQueueReceive(xTargetTiltQueue, (void*)&targetTiltDelta, (TickType_t)0) == pdTRUE )
 		{
 			//printf("Target tilt delta: %d\n", (int16_t)(targetTiltDelta.value));
-			targetTilt += (float)(targetTiltDelta.value);
+			targetTilt += (float)((int16_t)(targetTiltDelta.value));
 		}
 
 		// TODO: translation to target EulerAngle coords happens here
 
-		targetPos.yaw = targetPan;
-		targetPos.pitch = targetTilt;
-
 		if (abs(targetTilt) > 80.0)
 			targetTilt = copysignf(80.0, targetTilt);
+
+		targetPos.yaw = targetPan;
+		targetPos.pitch = targetTilt;
 
 		// send to
 		xQueueSend(xTargetQueue, (void*)&targetPos, (TickType_t)0);
@@ -341,7 +341,7 @@ void vMotorPitchCommutationTask(void* pvParameters)
 		// check to see if theres a new PID output
 		xQueueReceive(xMotorPitchCtrlQueue, (void*)&speed, (TickType_t)0);
 
-		Gimbal_CalcMotorParams(speed, &delay, &pulse, &dir);
+		Gimbal_CalcMotorParams(&pitchMotor, speed, &delay, &pulse, &dir);
 
 		Motor_SetParams(&pitchMotor, dir, pulse);
 		Motor_Commutate(&pitchMotor);
@@ -370,7 +370,7 @@ void vMotorRollCommutationTask(void* pvParameters)
 		// check to see if theres a new PID output
 		xQueueReceive(xMotorRollCtrlQueue, (void*)&speed, (TickType_t)0);
 
-		Gimbal_CalcMotorParams(speed, &delay, &pulse, &dir);
+		Gimbal_CalcMotorParams(&pitchMotor, speed, &delay, &pulse, &dir);
 
 		Motor_SetParams(&rollMotor, dir, pulse);
 		Motor_Commutate(&rollMotor);
@@ -475,29 +475,54 @@ static float Gimbal_CalcPID(PID_t* pid, float target, float current)
 	return control_output;
 }
 
-static uint8_t Gimbal_CalcMotorPulse(float speed)
+static uint8_t Gimbal_CalcMotorPulse(MotorHandle_t motor, float ctrl_in)
 {
-	float pulse_val = (MOTOR_PULSE_RANGE) * (1.0 - exp(-MOTOR_PULSE_CURVE_VAL*fabs(speed) / MOTOR_MAX_SPEED)) + MOTOR_MIN_PULSE;
+	float scale;
+	float min;
+	float max;
+	float range;
+	if (motor->identity == PITCH_MOTOR)
+	{
+		scale 	= PITCH_MOTOR_PULSE_CURVE_VAL;
+		min 	= PITCH_MOTOR_MIN_PULSE;
+		range 	= PITCH_MOTOR_PULSE_RANGE;
+	}
+
+	if (motor->identity == ROLL_MOTOR)
+	{
+		scale 	= ROLL_MOTOR_PULSE_CURVE_VAL;
+		min 	= ROLL_MOTOR_MIN_PULSE;
+		range 	= ROLL_MOTOR_PULSE_RANGE;
+	}
+
+	if (motor->identity == YAW_MOTOR)
+	{
+		scale 	= YAW_MOTOR_PULSE_CURVE_VAL;
+		min 	= YAW_MOTOR_MIN_PULSE;
+		range 	= YAW_MOTOR_PULSE_RANGE;
+	}
+
+	float pulse_val = (range) * (1.0 - exp(-scale*fabs(ctrl_in) / MOTOR_MAX_SPEED)) + min;
 	if (pulse_val > 255.0) pulse_val = 255.0;
 	return (uint8_t)fabs(pulse_val);
 }
 
 // speed in degrees per second
-void Gimbal_CalcMotorParams(float speed_in, uint32_t* delay_out, uint8_t* pulse_out, uint8_t* dir_out)
+void Gimbal_CalcMotorParams(MotorHandle_t motor, float ctrl_in, uint32_t* delay_out, uint8_t* pulse_out, uint8_t* dir_out)
 {
 	// =========== 1. DIR ====================================
 	// extract sign to determine delay and direction
-	if (speed_in >= 0.0) *dir_out = MOTOR_TURN_CCW; // + -> CCW
+	if (ctrl_in >= 0.0) *dir_out = MOTOR_TURN_CCW; // + -> CCW
 	else *dir_out = MOTOR_TURN_CW;				// - -> CW
 	// =======================================================
 
 	// =========== 2. PULSE ==================================
 
 	// get speed magnitude
-	float abs_speed = fabs(speed_in);
+	float abs_ctrl = fabs(ctrl_in);
 
 	// calculate pulse value // TODO: PLACEHOLDER VALUES
-	*pulse_out = Gimbal_CalcMotorPulse(abs_speed);
+	*pulse_out = Gimbal_CalcMotorPulse(motor, abs_ctrl);
 	// =======================================================
 
 	// =========== 3. DELAY ==================================
@@ -506,10 +531,10 @@ void Gimbal_CalcMotorParams(float speed_in, uint32_t* delay_out, uint8_t* pulse_
 	// this is very important to prevent ill-conditioned math!
 	// the speed_in variable can be very close to 0 or even zero
 
-	if (abs_speed >= MOTOR_MAX_SPEED)
-		abs_speed = MOTOR_MAX_SPEED;
-	else if (abs_speed <= MOTOR_MIN_SPEED)
-		abs_speed = MOTOR_MIN_SPEED;
+	if (abs_ctrl >= MOTOR_MAX_SPEED)
+		abs_ctrl = MOTOR_MAX_SPEED;
+	else if (abs_ctrl <= MOTOR_MIN_SPEED)
+		abs_ctrl = MOTOR_MIN_SPEED;
 
 	// calculate delay from speed
 	// there are 384 steps per electrical revolution, and 7*384 = 2688 steps per mechanical revolution
@@ -521,7 +546,7 @@ void Gimbal_CalcMotorParams(float speed_in, uint32_t* delay_out, uint8_t* pulse_
 	// total:
 	// delay = (1000 / (speed / 360)) / 7 / 384
 	// delay = 133.92857 / speed
-	uint32_t temp_delay = (uint32_t)(MOTOR_CONVERSION_CONSTANT / abs_speed);
+	uint32_t temp_delay = (uint32_t)(MOTOR_CONVERSION_CONSTANT / abs_ctrl);
 
 	// saturate delay (in case of ill conditioning leading to slightly out of bounds results)
 	if (temp_delay >= MOTOR_MAX_COMMUTATION_DELAY)
