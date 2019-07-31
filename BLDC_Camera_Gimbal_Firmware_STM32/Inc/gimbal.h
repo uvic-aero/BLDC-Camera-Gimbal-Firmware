@@ -76,7 +76,7 @@ void MOTOR_PeriodElapsedCallback(TIM_HandleTypeDef *htim);
 /// Convert speed in degrees per second to three motor parameters
 /// @input: speed is pass-by-value
 /// @output: delay_out, pulse_out, and dir_out are pass-by-ref outputs
-void Gimbal_CalcMotorParams(MotorHandle_t motor, float speed_in, uint32_t* delay_out, uint8_t* pulse_out, uint8_t* dir_out);
+void Gimbal_CalcMotorParams(MotorHandle_t motor, float ctrl_in, uint32_t* delay_out, uint8_t* pulse_out, uint8_t* dir_out);
 /// Wrapper for the "Get desired motor position" logic
 /// This is wrapped since it will change for 2 vs 3 axis
 EulerAngles_t Gimbal_CalcMotorTargetPos(EulerAngles_t currIMU, EulerAngles_t targIMU, EulerAngles_t currMotorPos);
