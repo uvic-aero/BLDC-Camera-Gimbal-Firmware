@@ -256,22 +256,22 @@ void vTargetSettingTask(void* pvParameters)
 		{
 			//printf("Target pan delta: %d\n", (int16_t)(targetPanDelta.value));
 			// add target to delta
-			targetPan += (float)(targetPanDelta.value);
+			targetPan += (float)((int16_t)(targetPanDelta.value));
 		}
 
 		if ( xQueueReceive(xTargetTiltQueue, (void*)&targetTiltDelta, (TickType_t)0) == pdTRUE )
 		{
 			//printf("Target tilt delta: %d\n", (int16_t)(targetTiltDelta.value));
-			targetTilt += (float)(targetTiltDelta.value);
+			targetTilt += (float)((int16_t)(targetTiltDelta.value));
 		}
 
 		// TODO: translation to target EulerAngle coords happens here
 
-		targetPos.yaw = targetPan;
-		targetPos.pitch = targetTilt;
-
 		if (abs(targetTilt) > 80.0)
 			targetTilt = copysignf(80.0, targetTilt);
+
+		targetPos.yaw = targetPan;
+		targetPos.pitch = targetTilt;
 
 		// send to
 		xQueueSend(xTargetQueue, (void*)&targetPos, (TickType_t)0);
