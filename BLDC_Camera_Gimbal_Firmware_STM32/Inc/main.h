@@ -207,17 +207,19 @@ void Error_Handler(void);
 #define PITCH_MOTOR_MAX_PULSE				(255)
 #define PITCH_MOTOR_PULSE_CURVE_VAL			(3.0)
 #define PITCH_MOTOR_PULSE_RANGE				(PITCH_MOTOR_MAX_PULSE - PITCH_MOTOR_MIN_PULSE)
-#define ROLL_MOTOR_MIN_PULSE				(25)
+
+#define ROLL_MOTOR_MIN_PULSE				(50)
 #define ROLL_MOTOR_MAX_PULSE				(255)
-#define ROLL_MOTOR_PULSE_CURVE_VAL			(10.0)
+#define ROLL_MOTOR_PULSE_CURVE_VAL			(6.0)
 #define ROLL_MOTOR_PULSE_RANGE				(ROLL_MOTOR_MAX_PULSE - ROLL_MOTOR_MIN_PULSE)
+
 #define YAW_MOTOR_MIN_PULSE					(100)
 #define YAW_MOTOR_MAX_PULSE					(255)
-#define YAW_MOTOR_PULSE_CURVE_VAL			(10.0)
+#define YAW_MOTOR_PULSE_CURVE_VAL			(2.0)
 #define YAW_MOTOR_PULSE_RANGE				(YAW_MOTOR_MAX_PULSE - YAW_MOTOR_MIN_PULSE)
 
-#define YAW_MOTOR_KP					(8.0f)
-#define YAW_MOTOR_KD					(1.0f)
+#define YAW_MOTOR_KP					(0.0f)
+#define YAW_MOTOR_KD					(0.0f)
 #define YAW_MOTOR_KI					(0.0f)
 
 #define ROLL_MOTOR_KP					(4.0f)
@@ -227,6 +229,9 @@ void Error_Handler(void);
 #define PITCH_MOTOR_KP					(8.0f)
 #define PITCH_MOTOR_KD					(0.0f)
 #define PITCH_MOTOR_KI					(0.0f)
+
+#define TIM_PITCH						(htim16)
+#define TIM_ROLL						(htim17)
 
 /* USER CODE END Private defines */
 

@@ -348,8 +348,8 @@ void vMotorPitchCommutationTask(void* pvParameters)
 		Motor_Commutate(&pitchMotor);
 
 		// start interrupt for delay and wait for notification from TIM7 ISR
-		__HAL_TIM_SET_COUNTER(&htim16, 0xffff - (uint16_t)(delay & 0x0000FFFF));
-		HAL_TIM_Base_Start_IT(&htim16);
+		__HAL_TIM_SET_COUNTER(&TIM_PITCH, 0xffff - (uint16_t)(delay & 0x0000FFFF));
+		HAL_TIM_Base_Start_IT(&TIM_PITCH);
 
 		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
@@ -371,14 +371,14 @@ void vMotorRollCommutationTask(void* pvParameters)
 		// check to see if theres a new PID output
 		xQueueReceive(xMotorRollCtrlQueue, (void*)&speed, (TickType_t)0);
 
-		Gimbal_CalcMotorParams(&pitchMotor, speed, &delay, &pulse, &dir);
+		Gimbal_CalcMotorParams(&rollMotor, speed, &delay, &pulse, &dir);
 
 		Motor_SetParams(&rollMotor, dir, pulse);
 		Motor_Commutate(&rollMotor);
 
 		// start interrupt for delay and wait for notification from TIM17 ISR
-		__HAL_TIM_SET_COUNTER(&htim17, 0xffff - (uint16_t)(delay & 0x0000FFFF));
-		HAL_TIM_Base_Start_IT(&htim17);
+		__HAL_TIM_SET_COUNTER(&TIM_ROLL, 0xffff - (uint16_t)(delay & 0x0000FFFF));
+		HAL_TIM_Base_Start_IT(&TIM_ROLL);
 
 		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
