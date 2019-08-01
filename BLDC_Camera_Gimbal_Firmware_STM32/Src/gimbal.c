@@ -578,8 +578,8 @@ EulerAngles_t Gimbal_CalcMotorTargetPos(EulerAngles_t currIMU, EulerAngles_t tar
 #elif ENABLED(MODE_2AXIS)
 
 	// assume we are controlling pitch and roll
-	float errPitch	=	Angles_CalcDist(targIMU.pitch,  -currIMU.pitch);
-	float errRoll	=	Angles_CalcDist(targIMU.roll,  -currIMU.roll);
+	float errPitch	=	Angles_CalcDist(-targIMU.pitch,  -currIMU.pitch);
+	float errRoll	=	Angles_CalcDist(-targIMU.roll,  -currIMU.roll);
 
 	targMotorPos.pitch	= Angles_Normalize180(currMotorPos.pitch + errPitch);
 	targMotorPos.roll	= Angles_Normalize180(currMotorPos.roll + errRoll);
