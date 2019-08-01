@@ -77,7 +77,7 @@
       $('.main_menu').removeClass('menu_fixed animated fadeInDown');
     }
 
-    if (window_top > 50 && !window.location.pathname.match(/index/i)) {
+    if (window_top > 50 && !window.location.pathname.match(/index|(?:\/$)/i)) {
       logoRef.style.filter = 'invert(100%)';
     }
     else if (logoRef.style.filter) {

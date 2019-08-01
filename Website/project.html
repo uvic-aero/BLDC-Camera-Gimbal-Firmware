@@ -6,7 +6,7 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <title>BLDC Camera Gimbal</title>
-    <link rel="icon" href="img/favicon.png">
+    <link rel="icon" href="img/icon/uvic-aero.ico">
     <!-- Bootstrap CSS -->
     <link rel="stylesheet" href="css/bootstrap.min.css">
     <!-- animate CSS -->
@@ -49,7 +49,7 @@
                                     <a class="nav-link" href="project.html">Project</a>
                                 </li>
                                 <li class="nav-item">
-                                    <a class="nav-link" href="about.html">About</a>
+                                    <a class="nav-link" href="about.html">About Us</a>
                                 </li>
                                 <li class="nav-item">
                                     <a class="nav-link" href="references.html">References</a>
@@ -94,6 +94,7 @@
         </div>
         <div class="whole-wrap">
             <div class="container box_1170">
+                <!-- Problem Definition Section -->
                 <div class="section-top-border">
                     <h3 class="mb-30">Problem Definition</h3>
                     <div class="row">
@@ -121,16 +122,15 @@
                             <div class="single-defination">
                                 <h4 class="mb-20">Uvic AERO's Problem</h4>
                                 <p>
-                                    The problem as formulated by AERO is to design the hardware and firmware of an
+                                    AERO wanted our team to design the hardware and firmware of an
                                     electronic control system for an existing Brushless DC (BLDC) electric motor camera
-                                    gimbal, whose capabilities and characteristics should include:
+                                    gimbal, with the goal of solving their camera stabilization problem.
+                                    <p>Some of the capabilities and characteristics include:</p>
                                     <ul class="unordered-list">
                                         <li>Stabilizing at the pitch and yaw of a payload consisting of a camera</li>
                                         <li>Smoothing movement to eliminate jitter from the image acquisition system</li>
                                         <li>Receiving and obeying pan and tilt commands at a distance</li>
-                                        <li>Controlling BLDC motor angular position to achieve stabilization and executing pan and tilt commands </li>
                                         <li>Autonomous tracking of objects</li>
-                                        <li>Integrate into AERO’s existing infrastructure and ecosystem </li>
                                     </ul>
                                 </p>
                             </div>
@@ -138,110 +138,64 @@
 
                     </div>
                 </div>
+
+                <!-- System Component -->
                 <div class="section-top-border">
                     <h3 class="mb-30">Hardware Architecture</h3>
                     <div class="row">
-                        <div class="col-md-3">
-                            <img src="img/elements/d.jpg" alt="" class="img-fluid">
+                        <div class="col-md-4">
+                            <img src="img/pcb_img_3d.png" alt="" class="img-fluid">
                         </div>
-                        <div class="col-md-9 mt-sm-20">
-                            <p class="mb-2">A gimbal is a mechanical assembly with multiple axes of rotation, which allows an
-                                object placed at the centre to remain stationary as the frame moves freely. Gimbals find
-                                applications in many domains where stabilization is necessary. Image capture, as an
-                                example, requires the compensation of vibration and movement to reduce image blurring
-                                during capture, and gimbals have often been used for this purpose.
+                        <div class="col-md-8 mt-sm-20">
+                            <p class="mb-2">The hardware system includes two BLDC motors, an IMU breakout board, two motor encoders, and a
+                                custom PCB to interface them all. The PCB was required due to the lack of reliable and cost effective third
+                                party gimbal control boards. 
                             </p>
-                            <p class="mb-2">The problem as formulated by AERO is to design the hardware and firmware of an 
-electronic control system for an existing Brushless DC (BLDC) electric motor camera 
-gimbal, whose capabilities and characteristics should include: </p>
-                            <p class="mb-2">
-                                Modern gimbals often use motors to trigger rotations about the axes of freedom. This has the added advantage of
-                                enabling an operator to change the target direction of the camera, often known as pan and
-                                tilt, or pitch and yaw.
+                            <p class="mb-2">The PCB houses an STM32F303 microcontroller and three DRV8313 motor drivers used to
+                                control the gimbal, allowing a three-axis gimbal in the future. The PCB includes three voltage regulators.The
+                                first is a 12V-8A buck converter that provides power to three motor drivers. The second rail is a 5V-5A buck
+                                converter that provides power to RC radio receivers and a Raspberry Pi 3B+ (used for object tracking). The third
+                                is a 3.3V-500mA LDO that is derived from the 5V rail, and used to power the STM32F303 and the I2C peripherals.
                             </p>
                         </div>
                     </div>
                 </div>
-                <div class="section-top-border text-right">
+                <!-- Top Level Firmware Architecture -->
+                <div class="section-top-border">
                     <h3 class="mb-30">Firmware Architecture</h3>
                     <div class="row">
-                        <div class="col-md-9">
-                            <p class="text-right">Over time, even the most sophisticated, memory packed computer can begin
-                                to run
-                                slow if we
-                                don’t do something to prevent it. The reason why has less to do with how computers are made
-                                and how
-                                they age and
-                                more to do with the way we use them. You see, all of the daily tasks that we do on our PC
-                                from
-                                running programs
-                                to downloading and deleting software can make our computer sluggish. To keep this from
-                                happening,
-                                you need to
-                                understand the reasons why your PC is getting slower and do something to keep your PC
-                                running at its
-                                best. You
-                                can do this through regular maintenance and PC performance optimization programs</p>
-                            <p class="text-right">Before we discuss all of the things that could be affecting your PC’s
-                                performance,
-                                let’s
-                                talk a little about what symptoms</p>
+                        <div class="col-md-4">
+                            <img src="img/firmware_architecture.png" alt="" class="img-fluid">
                         </div>
-                        <div class="col-md-3">
-                            <img src="img/elements/d.jpg" alt="" class="img-fluid">
+                        <div class="col-md-8">
+                            <p class="mt-2"> We decided to use the FreeRTOS real-time operating system framework
+                                to structure and implement the embedded firmware project. The framework is easy to
+                                learn and brings quicker development times and higher concurrency safety to real-time
+                                systems. The gimbal is a system that must react to events with minimal latency which
+                                qualifies it as a real-time system that can benefit from FreeRTOS.
+                            </p>
+                            <p class="mt-2">The diagram to the left shows the concurrent programming message passing model, which lends itself to the use of a real-time operating system </p>
                         </div>
                     </div>
                 </div>
                 <div class="section-top-border">
                     <h3 class="mb-30">Object Tracking Architecture</h3>
                     <div class="row">
-                        <div class="col-md-3">
+                        <div class="col-md-4">
                             <img src="img/elements/d.jpg" alt="" class="img-fluid">
                         </div>
-                        <div class="col-md-9 mt-sm-20">
-                            <p class="mb-2 text-body"> In 2016, AERO built a camera gimbal for image stabilization and capture. 
-                                At the time, only the mechanical design was completed, and was based on brushless DC 
-                                motors. An off-the-shelf hobbyist, closed-source hardware-firmware control solution was 
-                                purchased. While the system worked, it lacked several desirable features, such as software-
-                                based control, object tracking and extensibility.
+                        <div class="col-md-8 mt-sm-20">
+                            <p class="mt-2">The object tracking system automatically directs the gimbal to follow a set of
+                                features that is at the center of the camera. To accomplish this, the team chosen to 
+                                separate the object tracking into its own computer, and for the purposes of this project, we 
+                                will be using a <i style="color: #f5790b">Raspberry Pi</i>.
                             </p>
-                            <p class="mb-2 text-body">In 2017, a system failure prompted the exploration of pursuing an in-house control solution.</p>
-                            <p class="mb-2 text-body">
-                                The project was undertaken because it will enable UVic AERO to 
-                                mount complex payloads and undertake missions where real-time, high-resolution footage 
-                                is critical. Past AERO missions would have benefited from this system – for example, solar 
-                                farm damage monitoring. 
+                            <p class="mt-2">
+                                The program works by first receiving an image from the camera, then passing the image 
+                                through the image processing module, which contains the object tracking logic.
+                                Commands are sent to the gimbal's control system via the communications interface.
+                                <!-- <video class="OHeL3c" autoplay="" loop="" muted="" playsinline="" src="https://lh3.googleusercontent.com/jBLvbXfos5hXaZyLsikPG548BrnYOy_T8JxgQIiAyTny-dxd5SaAR38WHDbeBftbyI7FB1nXaA7cTp9XMMhd94DBZ4uD-BgQ0IGAmZwcx_dlsB8TVEQIDr28GuvhHC1jyyKy3OqcDNSCZXaXIKvzvJJlAMmfO0lUyuE2L_R0r1zj1wLpzBpnSYbv24HDl4PWNeOjlnc4WBLxzYAO_r2vdC-Viss8bm7YT9wdyOwc8G3Prj65a6f2BQ8qkB4zj_o_y3Bo1EVrB3nHUtWRYnh74Gz4C4t3MfRs7I_I9VvbRQzy9jxY8IiLbMvgv30j1XlVH-kQx5Ci9cQPJpsqCA8Dfo6HYlBLiVsyFeQ_vaiTl3ywBmaI4g9e__zZNKWH4BsBGL7Qboht5Q6Ey7FHgCibpNSg6LDDqdCuIu0ulruEdzZS4mIzBGLVf62U2YdcyWssBwwGDilznps7HMPUUqU154cOcnKLL2JR3ZsrfxR63oqgrziLSh8uiCo9tBW7rwxT9wTUtbzdz6rz7RLBfU1wsIOLqObb_lPFd1HKj6ESiSSOMccje3loON7clCjR6g7WTx3VNoeUN_2CHlspgsTqC_hAJn7lzvw_etwqG7X2w9gErzxasQszaomQHfR3yv7UMx3C7W-kQ0kAVrmVfKeXUBlKwMiWMBseaY-68dqZUrei6Ohqf7QNZ-jWRyIM-xRZqSPbpft3ZZXSG-y79R9xnHnb=m18" style="opacity: 1;"></video> -->
                             </p>
-                        </div>
-                    </div>
-                </div>
-                <div class="section-top-border text-right">
-                    <h3 class="mb-30">Hardware Components</h3>
-                    <div class="row">
-                        <div class="col-md-9">
-                            <p class="text-right">Over time, even the most sophisticated, memory packed computer can begin
-                                to run
-                                slow if we
-                                don’t do something to prevent it. The reason why has less to do with how computers are made
-                                and how
-                                they age and
-                                more to do with the way we use them. You see, all of the daily tasks that we do on our PC
-                                from
-                                running programs
-                                to downloading and deleting software can make our computer sluggish. To keep this from
-                                happening,
-                                you need to
-                                understand the reasons why your PC is getting slower and do something to keep your PC
-                                running at its
-                                best. You
-                                can do this through regular maintenance and PC performance optimization programs</p>
-                            <p class="text-right">Before we discuss all of the things that could be affecting your PC’s
-                                performance,
-                                let’s
-                                talk a little about what symptoms</p>
-                        </div>
-                        <div class="col-md-3">
-                            <img src="img/elements/d.jpg" alt="" class="img-fluid">
                         </div>
                     </div>
                 </div>
@@ -311,51 +265,6 @@ gimbal, whose capabilities and characteristics should include: </p>
                         </div>
                     </div>
                 </div>
-                <div class="section-top-border">
-                    <h3>Gimbal Image Gallery</h3>
-                    <div class="row gallery-item">
-                        <div class="col-md-4">
-                            <a href="img/elements/g1.jpg" class="img-pop-up">
-                                <div class="single-gallery-image" style="background: url(img/elements/g1.jpg);"></div>
-                            </a>
-                        </div>
-                        <div class="col-md-4">
-                            <a href="img/elements/g2.jpg" class="img-pop-up">
-                                <div class="single-gallery-image" style="background: url(img/elements/g2.jpg);"></div>
-                            </a>
-                        </div>
-                        <div class="col-md-4">
-                            <a href="img/elements/g3.jpg" class="img-pop-up">
-                                <div class="single-gallery-image" style="background: url(img/elements/g3.jpg);"></div>
-                            </a>
-                        </div>
-                        <div class="col-md-6">
-                            <a href="img/elements/g4.jpg" class="img-pop-up">
-                                <div class="single-gallery-image" style="background: url(img/elements/g4.jpg);"></div>
-                            </a>
-                        </div>
-                        <div class="col-md-6">
-                            <a href="img/elements/g5.jpg" class="img-pop-up">
-                                <div class="single-gallery-image" style="background: url(img/elements/g5.jpg);"></div>
-                            </a>
-                        </div>
-                        <div class="col-md-4">
-                            <a href="img/elements/g6.jpg" class="img-pop-up">
-                                <div class="single-gallery-image" style="background: url(img/elements/g6.jpg);"></div>
-                            </a>
-                        </div>
-                        <div class="col-md-4">
-                            <a href="img/elements/g7.jpg" class="img-pop-up">
-                                <div class="single-gallery-image" style="background: url(img/elements/g7.jpg);"></div>
-                            </a>
-                        </div>
-                        <div class="col-md-4">
-                            <a href="img/elements/g8.jpg" class="img-pop-up">
-                                <div class="single-gallery-image" style="background: url(img/elements/g8.jpg);"></div>
-                            </a>
-                        </div>
-                    </div>
-                </div>
                 <div class="container">
                     <div class="row justify-content-center">
                         <div class="col-xl-5">
@@ -366,8 +275,9 @@ gimbal, whose capabilities and characteristics should include: </p>
                         </div>
                     </div>
                 </div>
-                <div class="embed-responsive embed-responsive-16by9">
-                    <iframe class="embed-responsive-item" src="https://www.youtube.com/embed/zpOULjyy-n8?rel=0" allowfullscreen></iframe>
+                <div class="embed-responsive embed-responsive-4by3">
+                    <!-- <iframe class="embed-responsive-item" src="https://www.youtube.com/embed/zpOULjyy-n8?rel=0" allowfullscreen></iframe> -->
+                    <video class="" autoplay="" loop="" muted="" playsinline="" src="https://lh3.googleusercontent.com/jBLvbXfos5hXaZyLsikPG548BrnYOy_T8JxgQIiAyTny-dxd5SaAR38WHDbeBftbyI7FB1nXaA7cTp9XMMhd94DBZ4uD-BgQ0IGAmZwcx_dlsB8TVEQIDr28GuvhHC1jyyKy3OqcDNSCZXaXIKvzvJJlAMmfO0lUyuE2L_R0r1zj1wLpzBpnSYbv24HDl4PWNeOjlnc4WBLxzYAO_r2vdC-Viss8bm7YT9wdyOwc8G3Prj65a6f2BQ8qkB4zj_o_y3Bo1EVrB3nHUtWRYnh74Gz4C4t3MfRs7I_I9VvbRQzy9jxY8IiLbMvgv30j1XlVH-kQx5Ci9cQPJpsqCA8Dfo6HYlBLiVsyFeQ_vaiTl3ywBmaI4g9e__zZNKWH4BsBGL7Qboht5Q6Ey7FHgCibpNSg6LDDqdCuIu0ulruEdzZS4mIzBGLVf62U2YdcyWssBwwGDilznps7HMPUUqU154cOcnKLL2JR3ZsrfxR63oqgrziLSh8uiCo9tBW7rwxT9wTUtbzdz6rz7RLBfU1wsIOLqObb_lPFd1HKj6ESiSSOMccje3loON7clCjR6g7WTx3VNoeUN_2CHlspgsTqC_hAJn7lzvw_etwqG7X2w9gErzxasQszaomQHfR3yv7UMx3C7W-kQ0kAVrmVfKeXUBlKwMiWMBseaY-68dqZUrei6Ohqf7QNZ-jWRyIM-xRZqSPbpft3ZZXSG-y79R9xnHnb=m18" style="opacity: 1;"></video>
                 </div>
             </div>
     
