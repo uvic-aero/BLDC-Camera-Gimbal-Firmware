@@ -1,7 +1,7 @@
 
 import serial
 
-com = 'COM3'
+com = 'COM16'
 baud = 38400
 
 #   OMMS_START = 0b10101010,
@@ -15,7 +15,7 @@ baud = 38400
 headers = {0b10101010 : ('START', 0), 0b11011011 : ('STOP', 0), 0b00000001 : ('SYSTIME', 4), 0b000000010 : ('CURR_PAN',2), 0b00000011 : ('CURR_TILT',2), 0b00000100: ('TARG_PAN',2), 0b00000101 : ('TARG_TILT',2)}
 
 try:
-    with serial.Serial('COM3', 38400, timeout = None) as ser:
+    with serial.Serial(com, baud, timeout = None) as ser:
         while True:
             x = ser.read()
             if x != 0b10101010.to_bytes(1, byteorder='big'):

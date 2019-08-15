@@ -10,6 +10,7 @@
 
 /// PROJECT LEVEL HEADERS ///
 #include "main.h"
+#include <string.h>
 
 /// FreeRTOS Headers ///
 #include "FreeRTOS.h"

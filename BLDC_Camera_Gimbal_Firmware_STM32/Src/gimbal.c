@@ -55,6 +55,7 @@ static float Gimbal_CalcPID(PID_t* pid, float target, float current);
 /* ============= GLOBAL RESOURCE VARIABLES =============== */
 
 extern TIM_HandleTypeDef htim16;
+extern TIM_HandleTypeDef htim17;
 
 static IMU_t        imu;
 static RC_Input_t   rcPitch;
@@ -72,7 +73,8 @@ static Motor_t 	    rollMotor;
 
 QueueHandle_t xIMUQueue;
 QueueHandle_t xTargetQueue;
-QueueHandle_t xMotorControlQueue;
+QueueHandle_t xMotorPitchCtrlQueue;
+QueueHandle_t xMotorRollCtrlQueue;
 
 extern QueueHandle_t xEventsQueue;
 extern QueueHandle_t xTargetPanQueue;
@@ -84,7 +86,8 @@ extern QueueHandle_t xDataTransmitQueue;
 /// IMU handler task handle
 TaskHandle_t xTaskGimbalControl;
 TaskHandle_t xTaskTargetSet;
-TaskHandle_t xTaskMotor;
+TaskHandle_t xTaskMotorPitch;
+TaskHandle_t xTaskMotorRoll;
 TaskHandle_t xTaskRcPitch;
 TaskHandle_t xTaskRcYaw;
 TaskHandle_t xTaskRcMode;
@@ -116,16 +119,16 @@ void Gimbal_InitSensors(void)
 	//Encoder_Init(&yawEncoder, YAW_ENCODER, ENCODER_YAW_I2C_ADDR_);
 	//Poll_Encoder(&yawEncoder);
 	//Set_Zero_Position(&yawEncoder, yawEncoder.angleFloat);
-	//Encoder_Init(&rollEncoder, ROLL_ENCODER, ENCODER_ROLL_I2C_ADDR);
-	//Poll_Encoder(&rollEncoder);
-	//Set_Zero_Position(&rollEncoder, rollEncoder.angleFloat);
+	Encoder_Init(&rollEncoder, ROLL_ENCODER, ENCODER_ROLL_I2C_ADDR);
+	Encoder_GetAngle(&rollEncoder);
+	Encoder_SetZeroPosition(&rollEncoder, rollEncoder.angleFloat);
 
 	Motor_Init(&pitchMotor, PITCH_MOTOR);
 	Motor_SetOperationMode(&pitchMotor, COAST);
 	//Motor_Init(&yawMotor, YAW_MOTOR);
 	//Set_Operation_Mode(&yawMotor, COAST);
-	//Motor_Init(&rollMotor, ROLL_MOTOR);
-	//Set_Operation_Mode(&rollMotor, COAST);
+	Motor_Init(&rollMotor, ROLL_MOTOR);
+	Motor_SetOperationMode(&rollMotor, COAST);
 
 
 	/// others... including any calibration required
@@ -139,8 +142,11 @@ void Gimbal_InitQueues(void)
 	xTargetQueue = xQueueCreate(1, sizeof(EulerAngles_t));
 	vQueueAddToRegistry(xTargetQueue, "Target_Q");
 
-	xMotorControlQueue = xQueueCreate(1, sizeof(float));
-	vQueueAddToRegistry(xMotorControlQueue, "Motor_Q");
+	xMotorPitchCtrlQueue = xQueueCreate(1, sizeof(float));
+	vQueueAddToRegistry(xMotorPitchCtrlQueue, "MPitch_Q");
+
+	xMotorRollCtrlQueue = xQueueCreate(1, sizeof(float));
+	vQueueAddToRegistry(xMotorRollCtrlQueue, "MRoll_Q");
 
 }
 
@@ -152,7 +158,8 @@ void Gimbal_InitTasks(void)
 	xTaskCreate(vRcYawHandler, "RcYaw", configMINIMAL_STACK_SIZE, NULL, PRIO_RC, &xTaskRcYaw);
 	xTaskCreate(vGimbalControlLoopTask, "CtrlLoop", configMINIMAL_STACK_SIZE, NULL, PRIO_CONTROL, &xTaskGimbalControl);
 	xTaskCreate(vTargetSettingTask, "TargetSet", configMINIMAL_STACK_SIZE, NULL, PRIO_TARGETSET, &xTaskTargetSet );
-	xTaskCreate(vMotorCommutationTask, "MotorCom", configMINIMAL_STACK_SIZE, NULL, PRIO_MOTOR, &xTaskMotor);
+	xTaskCreate(vMotorPitchCommutationTask, "MPitchCom", configMINIMAL_STACK_SIZE, NULL, PRIO_MOTOR, &xTaskMotorPitch);
+	xTaskCreate(vMotorRollCommutationTask, "MRollCom", configMINIMAL_STACK_SIZE, NULL, PRIO_MOTOR, &xTaskMotorRoll);
 	/// others...
 }
 
@@ -203,8 +210,8 @@ void vGimbalControlLoopTask(void* pvParameters)
 
 		/// Get encoder values
 		currMotorPos.pitch 	= Angles_Normalize180( Encoder_GetAngle(&pitchEncoder) );
-		//currMotorPos.yaw 	= Angles_Normalize180( Poll_Encoder(&yawEncoder) );
-		//currMotorPos.roll 	= Angles_Normalize180( Poll_Encoder(&rollEncoder) );
+		//currMotorPos.yaw 	= Angles_Normalize180( Encoder_GetAngle(&yawEncoder) );
+		currMotorPos.roll 	= Angles_Normalize180( Encoder_GetAngle(&rollEncoder) );
 
 
 		// Calculate the Inverse Kinematic target motor positions
@@ -215,14 +222,18 @@ void vGimbalControlLoopTask(void* pvParameters)
 		yawCtrl 	= Gimbal_CalcPID(&yawPID, targetMotorPos.yaw, currMotorPos.yaw);
 		rollCtrl	= Gimbal_CalcPID(&rollPID, targetMotorPos.roll, currMotorPos.roll);
 
+#ifdef DEBUG
 		if (counter == 0)
 			printf("CM: %d, TM: %d, CI: %d, TI: %d\n",
-				(int)(currMotorPos.pitch), (int)(targetMotorPos.pitch), (int)(currCameraPos.pitch), (int)(targetCameraPos.pitch));
-
+				(int)(currMotorPos.roll), (int)(targetMotorPos.roll), (int)(currCameraPos.roll), (int)(targetCameraPos.roll));
 		counter = (counter + 1) % 100;
+#endif
 
 		// send to motor // TODO: other motors than yaw
-		xQueueOverwrite(xMotorControlQueue, (void*)&pitchCtrl);
+
+		xQueueOverwrite(xMotorPitchCtrlQueue, (void*)&pitchCtrl);
+		xQueueOverwrite(xMotorRollCtrlQueue, (void*)&rollCtrl);
+
 	}
 }
 
@@ -244,22 +255,22 @@ void vTargetSettingTask(void* pvParameters)
 		{
 			//printf("Target pan delta: %d\n", (int16_t)(targetPanDelta.value));
 			// add target to delta
-			targetPan += (float)(targetPanDelta.value);
+			targetPan += (float)((int16_t)(targetPanDelta.value));
 		}
 
 		if ( xQueueReceive(xTargetTiltQueue, (void*)&targetTiltDelta, (TickType_t)0) == pdTRUE )
 		{
 			//printf("Target tilt delta: %d\n", (int16_t)(targetTiltDelta.value));
-			targetTilt += (float)(targetTiltDelta.value);
+			targetTilt += (float)((int16_t)(targetTiltDelta.value));
 		}
 
 		// TODO: translation to target EulerAngle coords happens here
 
-		targetPos.yaw = targetPan;
-		targetPos.pitch = targetTilt;
-
 		if (abs(targetTilt) > 80.0)
 			targetTilt = copysignf(80.0, targetTilt);
+
+		targetPos.yaw = targetPan;
+		targetPos.pitch = targetTilt;
 
 		// send to
 		xQueueSend(xTargetQueue, (void*)&targetPos, (TickType_t)0);
@@ -316,7 +327,7 @@ void vRcModeHandler(void* pvParameters)
 }
 
 
-void vMotorCommutationTask(void* pvParameters)
+void vMotorPitchCommutationTask(void* pvParameters)
 {
 
 	Motor_SetOperationMode(&pitchMotor, COMMUTATE);
@@ -328,9 +339,9 @@ void vMotorCommutationTask(void* pvParameters)
 	do
 	{
 		// check to see if theres a new PID output
-		xQueueReceive(xMotorControlQueue, (void*)&speed, (TickType_t)0);
+		xQueueReceive(xMotorPitchCtrlQueue, (void*)&speed, (TickType_t)0);
 
-		Gimbal_CalcMotorParams(speed, &delay, &pulse, &dir);
+		Gimbal_CalcMotorParams(&pitchMotor, speed, &delay, &pulse, &dir);
 
 		Motor_SetParams(&pitchMotor, dir, pulse);
 		Motor_Commutate(&pitchMotor);
@@ -338,6 +349,35 @@ void vMotorCommutationTask(void* pvParameters)
 		// start interrupt for delay and wait for notification from TIM7 ISR
 		__HAL_TIM_SET_COUNTER(&htim16, 0xffff - (uint16_t)(delay & 0x0000FFFF));
 		HAL_TIM_Base_Start_IT(&htim16);
+
+		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
+
+	}
+	while(true);
+}
+
+void vMotorRollCommutationTask(void* pvParameters)
+{
+
+	Motor_SetOperationMode(&rollMotor, COMMUTATE);
+	Motor_SetParams(&rollMotor, MOTOR_TURN_CCW, 0);
+	float speed = 0.0;
+	uint32_t delay = MOTOR_MAX_COMMUTATION_DELAY;
+	uint8_t pulse = 0;
+	uint8_t dir = MOTOR_TURN_CCW;
+	do
+	{
+		// check to see if theres a new PID output
+		xQueueReceive(xMotorRollCtrlQueue, (void*)&speed, (TickType_t)0);
+
+		Gimbal_CalcMotorParams(&pitchMotor, speed, &delay, &pulse, &dir);
+
+		Motor_SetParams(&rollMotor, dir, pulse);
+		Motor_Commutate(&rollMotor);
+
+		// start interrupt for delay and wait for notification from TIM17 ISR
+		__HAL_TIM_SET_COUNTER(&htim17, 0xffff - (uint16_t)(delay & 0x0000FFFF));
+		HAL_TIM_Base_Start_IT(&htim17);
 
 		ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
@@ -361,14 +401,30 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 
 void MOTOR_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
+	/////////////// PITCH WAKEUP ////////////////
 	if (htim->Instance == TIM16)
 	{
+
 		HAL_TIM_Base_Stop_IT(&htim16);
 		// yield to motor commutation task
 		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-		vTaskNotifyGiveFromISR( xTaskMotor, &xHigherPriorityTaskWoken );
+		vTaskNotifyGiveFromISR( xTaskMotorPitch, &xHigherPriorityTaskWoken );
 		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+
 	}
+
+	/////////////// ROLL  WAKEUP /////////////////
+	if (htim->Instance == TIM17)
+	{
+
+		HAL_TIM_Base_Stop_IT(&htim17);
+		// yield to motor commutation task
+		BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+		vTaskNotifyGiveFromISR( xTaskMotorRoll, &xHigherPriorityTaskWoken );
+		portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+
+	}
+
 }
 
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim)
@@ -419,30 +475,54 @@ static float Gimbal_CalcPID(PID_t* pid, float target, float current)
 	return control_output;
 }
 
-static uint8_t Gimbal_CalcMotorPulse(float speed)
+static uint8_t Gimbal_CalcMotorPulse(MotorHandle_t motor, float ctrl_in)
 {
-	//float pulse_val = 255.0 * sqrt(fabs(speed)) / sqrt(MOTOR_MAX_SPEED);
-	float pulse_val = (MOTOR_PULSE_RANGE) * (1.0 - exp(-MOTOR_PULSE_CURVE_VAL*fabs(speed) / MOTOR_MAX_SPEED)) + MOTOR_MIN_PULSE;
+	float scale;
+	float min;
+	float max;
+	float range;
+	if (motor->identity == PITCH_MOTOR)
+	{
+		scale 	= PITCH_MOTOR_PULSE_CURVE_VAL;
+		min 	= PITCH_MOTOR_MIN_PULSE;
+		range 	= PITCH_MOTOR_PULSE_RANGE;
+	}
+
+	if (motor->identity == ROLL_MOTOR)
+	{
+		scale 	= ROLL_MOTOR_PULSE_CURVE_VAL;
+		min 	= ROLL_MOTOR_MIN_PULSE;
+		range 	= ROLL_MOTOR_PULSE_RANGE;
+	}
+
+	if (motor->identity == YAW_MOTOR)
+	{
+		scale 	= YAW_MOTOR_PULSE_CURVE_VAL;
+		min 	= YAW_MOTOR_MIN_PULSE;
+		range 	= YAW_MOTOR_PULSE_RANGE;
+	}
+
+	float pulse_val = (range) * (1.0 - exp(-scale*fabs(ctrl_in) / MOTOR_MAX_SPEED)) + min;
 	if (pulse_val > 255.0) pulse_val = 255.0;
 	return (uint8_t)fabs(pulse_val);
 }
 
 // speed in degrees per second
-void Gimbal_CalcMotorParams(float speed_in, uint32_t* delay_out, uint8_t* pulse_out, uint8_t* dir_out)
+void Gimbal_CalcMotorParams(MotorHandle_t motor, float ctrl_in, uint32_t* delay_out, uint8_t* pulse_out, uint8_t* dir_out)
 {
 	// =========== 1. DIR ====================================
 	// extract sign to determine delay and direction
-	if (speed_in >= 0.0) *dir_out = MOTOR_TURN_CCW; // + -> CCW
+	if (ctrl_in >= 0.0) *dir_out = MOTOR_TURN_CCW; // + -> CCW
 	else *dir_out = MOTOR_TURN_CW;				// - -> CW
 	// =======================================================
 
 	// =========== 2. PULSE ==================================
 
 	// get speed magnitude
-	float abs_speed = fabs(speed_in);
+	float abs_ctrl = fabs(ctrl_in);
 
 	// calculate pulse value // TODO: PLACEHOLDER VALUES
-	*pulse_out = Gimbal_CalcMotorPulse(abs_speed);
+	*pulse_out = Gimbal_CalcMotorPulse(motor, abs_ctrl);
 	// =======================================================
 
 	// =========== 3. DELAY ==================================
@@ -451,10 +531,10 @@ void Gimbal_CalcMotorParams(float speed_in, uint32_t* delay_out, uint8_t* pulse_
 	// this is very important to prevent ill-conditioned math!
 	// the speed_in variable can be very close to 0 or even zero
 
-	if (abs_speed >= MOTOR_MAX_SPEED)
-		abs_speed = MOTOR_MAX_SPEED;
-	else if (abs_speed <= MOTOR_MIN_SPEED)
-		abs_speed = MOTOR_MIN_SPEED;
+	if (abs_ctrl >= MOTOR_MAX_SPEED)
+		abs_ctrl = MOTOR_MAX_SPEED;
+	else if (abs_ctrl <= MOTOR_MIN_SPEED)
+		abs_ctrl = MOTOR_MIN_SPEED;
 
 	// calculate delay from speed
 	// there are 384 steps per electrical revolution, and 7*384 = 2688 steps per mechanical revolution
@@ -466,7 +546,7 @@ void Gimbal_CalcMotorParams(float speed_in, uint32_t* delay_out, uint8_t* pulse_
 	// total:
 	// delay = (1000 / (speed / 360)) / 7 / 384
 	// delay = 133.92857 / speed
-	uint32_t temp_delay = (uint32_t)(MOTOR_CONVERSION_CONSTANT / abs_speed);
+	uint32_t temp_delay = (uint32_t)(MOTOR_CONVERSION_CONSTANT / abs_ctrl);
 
 	// saturate delay (in case of ill conditioning leading to slightly out of bounds results)
 	if (temp_delay >= MOTOR_MAX_COMMUTATION_DELAY)
@@ -498,16 +578,19 @@ EulerAngles_t Gimbal_CalcMotorTargetPos(EulerAngles_t currIMU, EulerAngles_t tar
 #elif ENABLED(MODE_2AXIS)
 
 	// assume we are controlling pitch and roll
+	float errPitch	=	Angles_CalcDist(-targIMU.pitch,  -currIMU.pitch);
+	float errRoll	=	Angles_CalcDist(-targIMU.roll,  -currIMU.roll);
 
-	// get the error from the IMU position
-	float errPitch	=	Angles_CalcDist(targIMU.pitch, currIMU.pitch);
-	float errRoll	=	Angles_CalcDist(targIMU.roll,  currIMU.roll);
-
-	// for two axis control, we just need to calculate the next motor position
-	// by adding the IMU error to current motor position
-	// i.e. move in the direction that brings us towards the target
 	targMotorPos.pitch	= Angles_Normalize180(currMotorPos.pitch + errPitch);
 	targMotorPos.roll	= Angles_Normalize180(currMotorPos.roll + errRoll);
+
+	// try to cap the value so we don't go past +/- 90deg
+	if (fabs(targMotorPos.pitch) > 70.0 )
+		targMotorPos.pitch = copysignf(70.0, targMotorPos.pitch);
+
+	// try to cap the value so we don't go past +/- 90deg
+	if (fabs(targMotorPos.roll) > 70.0 )
+		targMotorPos.roll = copysignf(70.0, targMotorPos.roll);
 
 #elif ENABLED(MODE_3AXIS)
 #error 3-axis aint enabled yet yo

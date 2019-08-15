@@ -175,8 +175,8 @@ void Error_Handler(void);
 #define ENABLED(__mode__)		((__mode__) == 1)
 #define DISABLED(__mode__)		((__mode__) == 0)
 
-#define MODE_1AXIS				(1)
-#define MODE_2AXIS				(0)
+#define MODE_1AXIS				(0)
+#define MODE_2AXIS				(1)
 #define MODE_3AXIS				(0)
 
 #if ENABLED(MODE_1AXIS) && (ENABLED(MODE_2AXIS) || ENABLED(MODE_3AXIS))
@@ -201,16 +201,26 @@ void Error_Handler(void);
 #define MOTOR_POLE_PAIRS				(7)			// dimensionless
 #define MOTOR_MAX_COMMUTATION_DELAY		(0x0000ffff) 	// us
 #define MOTOR_MIN_COMMUTATION_DELAY		(186) 		// us
-#define MOTOR_MIN_PULSE					(100)
-#define MOTOR_MAX_PULSE					(255)
-#define MOTOR_PULSE_CURVE_VAL			(2.0)
-#define MOTOR_PULSE_RANGE				(MOTOR_MAX_PULSE - MOTOR_MIN_PULSE)
+
+
+#define PITCH_MOTOR_MIN_PULSE				(100)
+#define PITCH_MOTOR_MAX_PULSE				(255)
+#define PITCH_MOTOR_PULSE_CURVE_VAL			(3.0)
+#define PITCH_MOTOR_PULSE_RANGE				(PITCH_MOTOR_MAX_PULSE - PITCH_MOTOR_MIN_PULSE)
+#define ROLL_MOTOR_MIN_PULSE				(25)
+#define ROLL_MOTOR_MAX_PULSE				(255)
+#define ROLL_MOTOR_PULSE_CURVE_VAL			(10.0)
+#define ROLL_MOTOR_PULSE_RANGE				(ROLL_MOTOR_MAX_PULSE - ROLL_MOTOR_MIN_PULSE)
+#define YAW_MOTOR_MIN_PULSE					(100)
+#define YAW_MOTOR_MAX_PULSE					(255)
+#define YAW_MOTOR_PULSE_CURVE_VAL			(10.0)
+#define YAW_MOTOR_PULSE_RANGE				(YAW_MOTOR_MAX_PULSE - YAW_MOTOR_MIN_PULSE)
 
 #define YAW_MOTOR_KP					(8.0f)
-#define YAW_MOTOR_KD					(0.0f)
+#define YAW_MOTOR_KD					(1.0f)
 #define YAW_MOTOR_KI					(0.0f)
 
-#define ROLL_MOTOR_KP					(8.0f)
+#define ROLL_MOTOR_KP					(4.0f)
 #define ROLL_MOTOR_KD					(0.0f)
 #define ROLL_MOTOR_KI					(0.0f)
 
