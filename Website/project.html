@@ -1,0 +1,272 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>BLDC Camera Gimbal</title>
+    <link rel="icon" href="img/icon/uvic-aero.ico">
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <!-- animate CSS -->
+    <link rel="stylesheet" href="css/animate.css">
+    <!-- owl carousel CSS -->
+    <link rel="stylesheet" href="css/owl.carousel.min.css">
+    <!-- themify CSS -->
+    <link rel="stylesheet" href="css/themify-icons.css">
+    <!-- flaticon CSS -->
+    <link rel="stylesheet" href="css/flaticon.css">
+    <!-- font awesome CSS -->
+    <link rel="stylesheet" href="css/magnific-popup.css">
+    <!-- swiper CSS -->
+    <link rel="stylesheet" href="css/slick.css">
+    <!-- style CSS -->
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+    <!--::header part start::-->
+    <header class="main_menu single_page_menu">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-12">
+                    <nav class="navbar navbar-expand-lg navbar-light">
+                        <a class="navbar-brand" href="index.html"> <img src="img/aero_logo.png" alt="logo" style="filter: contrast(100%)"> </a>
+                        <button class="navbar-toggler" type="button" data-toggle="collapse"
+                            data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent"
+                            aria-expanded="false" aria-label="Toggle navigation">
+                            <span class="navbar-toggler-icon"></span>
+                        </button>
+
+                        <div class="collapse navbar-collapse main-menu-item justify-content-end"
+                            id="navbarSupportedContent">
+                            <ul class="navbar-nav align-items-center">
+                                <li class="nav-item">
+                                    <a class="nav-link" href="index.html">Home</a>
+                                </li>
+                                <li class="nav-item active">
+                                    <a class="nav-link" href="project.html">Project</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="about.html">About Us</a>
+                                </li>
+                                <li class="nav-item">
+                                    <a class="nav-link" href="references.html">References</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </header>
+    <!-- Header part end-->
+
+    <!-- breadcrumb start-->
+    <section class="breadcrumb breadcrumb_bg">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="breadcrumb_iner text-center">
+                        <div class="breadcrumb_iner_item">
+                            <h2>Project Details</h2>
+                            <p>Project<span>/</span>499</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- breadcrumb start-->
+
+    <!--::review_part start::-->
+    <section class="special_cource padding_top">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-xl-5">
+                    <div class="section_tittle text-center">
+                        <p>Learn more about the Gimbal</p>
+                        <h2>BLDC Camera Gimbal</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="whole-wrap">
+            <div class="container box_1170">
+                <!-- Problem Definition Section -->
+                <div class="section-top-border">
+                    <h3 class="mb-30">Problem Definition</h3>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="single-defination">
+                                <h4 class="mb-20">What is a Gimbal?</h4>
+                                <p>A gimbal is a mechanical assembly with multiple axes of rotation, which allows an
+                                object placed at the centre to remain stationary as the frame moves freely. Gimbals find
+                                applications in many domains where stabilization is necessary. 
+                                </p>
+                                <p>Image capture, as an
+                                example, requires the compensation of vibration and movement to reduce image blurring
+                                during capture, and gimbals have often been used for this purpose.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="single-defination">
+                                <h4 class="mb-20">Our Target Audience</h4>
+                                <p>UVic AERO competes in an annual competition for Unmanned Aerial Vehicles (UAV’s), run by Unmanned Systems Canada. The competition awards more points for more custom solutions.</p>
+                                <p>This project was undertaken because it will enable UVic AERO to mount complex 
+                                    payloads and undertake missions where real-time, high-resolution footage is critical.</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="single-defination">
+                                <h4 class="mb-20">Uvic AERO's Problem</h4>
+                                <p>
+                                    AERO wanted our team to design the hardware and firmware of an
+                                    electronic control system for an existing Brushless DC (BLDC) electric motor camera
+                                    gimbal, with the goal of solving their camera stabilization problem.
+                                    <p>Some of the capabilities and characteristics include:</p>
+                                    <ul class="unordered-list">
+                                        <li>Stabilizing at the pitch and yaw of a payload consisting of a camera</li>
+                                        <li>Smoothing movement to eliminate jitter from the image acquisition system</li>
+                                        <li>Receiving and obeying pan and tilt commands at a distance</li>
+                                        <li>Autonomous tracking of objects</li>
+                                    </ul>
+                                </p>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- System Component -->
+                <div class="section-top-border">
+                    <h3 class="mb-30">Hardware Architecture</h3>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <img src="img/pcb_img_3d.png" alt="" class="img-fluid">
+                        </div>
+                        <div class="col-md-8 mt-sm-20">
+                            <p class="mb-2">The hardware system includes two BLDC motors, an IMU breakout board, two motor encoders, and a
+                                custom PCB to interface them all. The PCB was required due to the lack of reliable and cost effective third
+                                party gimbal control boards. 
+                            </p>
+                            <p class="mb-2">The PCB houses an STM32F303 microcontroller and three DRV8313 motor drivers used to
+                                control the gimbal, allowing a three-axis gimbal in the future. The PCB includes three voltage regulators.The
+                                first is a 12V-8A buck converter that provides power to three motor drivers. The second rail is a 5V-5A buck
+                                converter that provides power to RC radio receivers and a Raspberry Pi 3B+ (used for object tracking). The third
+                                is a 3.3V-500mA LDO that is derived from the 5V rail, and used to power the STM32F303 and the I2C peripherals.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <!-- Top Level Firmware Architecture -->
+                <div class="section-top-border">
+                    <h3 class="mb-30">Firmware Architecture</h3>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <img src="img/firmware_architecture.png" alt="" class="img-fluid">
+                        </div>
+                        <div class="col-md-8">
+                            <p class="mt-2"> We decided to use the FreeRTOS real-time operating system framework
+                                to structure and implement the embedded firmware project. The framework is easy to
+                                learn and brings quicker development times and higher concurrency safety to real-time
+                                systems. The gimbal is a system that must react to events with minimal latency which
+                                qualifies it as a real-time system that can benefit from FreeRTOS.
+                            </p>
+                            <p class="mt-2">The diagram to the left shows the concurrent programming message passing model, which lends itself to the use of a real-time operating system.</p>
+                        </div>
+                    </div>
+                </div>
+                <!-- Pbject Tracking Architecture -->
+                <div class="section-top-border">
+                    <h3 class="mb-30">Object Tracking Architecture</h3>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <img src="img/open_cv.jpg" alt="" class="img-fluid">
+                        </div>
+                        <div class="col-md-8 mt-sm-20">
+                            <p class="mt-2">The object tracking system automatically directs the gimbal to follow a set of
+                                features that is at the center of the camera. To accomplish this, the team chose to 
+                                separate the object tracking into its own computer, and for the purposes of this project, we 
+                                used a <i style="color: #f5790b">Raspberry Pi</i>.
+                            </p>
+                            <p class="mt-2">
+                                The program works by first receiving an image from the camera, then passing the image 
+                                through the image processing module, which contains the object tracking logic.
+                                Commands are sent to the gimbal's control system via the communications interface.
+                                <!-- <video class="OHeL3c" autoplay="" loop="" muted="" playsinline="" src="https://lh3.googleusercontent.com/jBLvbXfos5hXaZyLsikPG548BrnYOy_T8JxgQIiAyTny-dxd5SaAR38WHDbeBftbyI7FB1nXaA7cTp9XMMhd94DBZ4uD-BgQ0IGAmZwcx_dlsB8TVEQIDr28GuvhHC1jyyKy3OqcDNSCZXaXIKvzvJJlAMmfO0lUyuE2L_R0r1zj1wLpzBpnSYbv24HDl4PWNeOjlnc4WBLxzYAO_r2vdC-Viss8bm7YT9wdyOwc8G3Prj65a6f2BQ8qkB4zj_o_y3Bo1EVrB3nHUtWRYnh74Gz4C4t3MfRs7I_I9VvbRQzy9jxY8IiLbMvgv30j1XlVH-kQx5Ci9cQPJpsqCA8Dfo6HYlBLiVsyFeQ_vaiTl3ywBmaI4g9e__zZNKWH4BsBGL7Qboht5Q6Ey7FHgCibpNSg6LDDqdCuIu0ulruEdzZS4mIzBGLVf62U2YdcyWssBwwGDilznps7HMPUUqU154cOcnKLL2JR3ZsrfxR63oqgrziLSh8uiCo9tBW7rwxT9wTUtbzdz6rz7RLBfU1wsIOLqObb_lPFd1HKj6ESiSSOMccje3loON7clCjR6g7WTx3VNoeUN_2CHlspgsTqC_hAJn7lzvw_etwqG7X2w9gErzxasQszaomQHfR3yv7UMx3C7W-kQ0kAVrmVfKeXUBlKwMiWMBseaY-68dqZUrei6Ohqf7QNZ-jWRyIM-xRZqSPbpft3ZZXSG-y79R9xnHnb=m18" style="opacity: 1;"></video> -->
+                            </p>
+                        </div>
+                    </div>
+                </div>
+                <div class="container">
+                    <div class="row justify-content-center">
+                        <div class="col-xl-5">
+                            <div class="section_tittle text-center" style="margin-bottom: 30px;">
+                                <p>Watch the Gimbal in Action</p>
+                                <h2>Gimbal Demonstration</h2>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="embed-responsive embed-responsive-4by3">
+                    <video class="" autoplay loop muted playsinline src="https://lh3.googleusercontent.com/jBLvbXfos5hXaZyLsikPG548BrnYOy_T8JxgQIiAyTny-dxd5SaAR38WHDbeBftbyI7FB1nXaA7cTp9XMMhd94DBZ4uD-BgQ0IGAmZwcx_dlsB8TVEQIDr28GuvhHC1jyyKy3OqcDNSCZXaXIKvzvJJlAMmfO0lUyuE2L_R0r1zj1wLpzBpnSYbv24HDl4PWNeOjlnc4WBLxzYAO_r2vdC-Viss8bm7YT9wdyOwc8G3Prj65a6f2BQ8qkB4zj_o_y3Bo1EVrB3nHUtWRYnh74Gz4C4t3MfRs7I_I9VvbRQzy9jxY8IiLbMvgv30j1XlVH-kQx5Ci9cQPJpsqCA8Dfo6HYlBLiVsyFeQ_vaiTl3ywBmaI4g9e__zZNKWH4BsBGL7Qboht5Q6Ey7FHgCibpNSg6LDDqdCuIu0ulruEdzZS4mIzBGLVf62U2YdcyWssBwwGDilznps7HMPUUqU154cOcnKLL2JR3ZsrfxR63oqgrziLSh8uiCo9tBW7rwxT9wTUtbzdz6rz7RLBfU1wsIOLqObb_lPFd1HKj6ESiSSOMccje3loON7clCjR6g7WTx3VNoeUN_2CHlspgsTqC_hAJn7lzvw_etwqG7X2w9gErzxasQszaomQHfR3yv7UMx3C7W-kQ0kAVrmVfKeXUBlKwMiWMBseaY-68dqZUrei6Ohqf7QNZ-jWRyIM-xRZqSPbpft3ZZXSG-y79R9xnHnb=m18" style="opacity: 1;"></video>
+                </div>
+            </div>
+    
+        </div>
+    </section>
+    <!--::blog_part end::-->
+
+    
+    <!-- footer part start-->
+    <footer class="footer-area">
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-lg-12">
+                    <div class="copyright_part_text text-center">
+                        <div class="row">
+                            <div class="col-lg-12">
+                                <p class="footer-text m-0">
+                                    <!-- Link back to Colorlib can't be removed. Template is licensed under CC BY 3.0. -->
+                                    Copyright &copy;
+                                    <script>document.write(new Date().getFullYear());</script> All rights reserved | This
+                                    template is made with <i class="ti-heart" aria-hidden="true"></i> by <a
+                                        href="https://colorlib.com" target="_blank">Colorlib</a>
+                                    <!-- Link back to Colorlib can't be removed. Template is licensed under CC BY 3.0. -->
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+    <!-- footer part end-->
+    
+    <!-- jquery plugins here-->
+    <!-- jquery -->
+    <script src="js/jquery-1.12.1.min.js"></script>
+    <!-- popper js -->
+    <script src="js/popper.min.js"></script>
+    <!-- bootstrap js -->
+    <script src="js/bootstrap.min.js"></script>
+    <!-- easing js -->
+    <script src="js/jquery.magnific-popup.js"></script>
+    <!-- swiper js -->
+    <script src="js/swiper.min.js"></script>
+    <!-- swiper js -->
+    <script src="js/masonry.pkgd.js"></script>
+    <!-- particles js -->
+    <script src="js/owl.carousel.min.js"></script>
+    <script src="js/jquery.nice-select.min.js"></script>
+    <!-- swiper js -->
+    <script src="js/slick.min.js"></script>
+    <script src="js/jquery.counterup.min.js"></script>
+    <script src="js/waypoints.min.js"></script>
+    <!-- custom js -->
+    <script src="js/custom.js"></script>
+</body>
+
+</html>
